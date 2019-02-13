@@ -1,12 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"time"
 	"strconv"
 )
 
-const ServerMaxEventBufferSize int = 10
+const ServerMaxEventBufferSize int = 1
 
 
 type Server struct {
@@ -53,7 +51,7 @@ func (s *Server) run() {
 //in order to have possibility to write events to db after some time passed
 func (s *Server) writeEvents() {
 	for {
-		if len(s.PendingEvents.Items) > ServerMaxEventBufferSize {
+		if len(s.PendingEvents.Items) >= ServerMaxEventBufferSize {
 			events := s.PendingEvents.dumpSlice()
 			_ = events
 			//lock & update DB
@@ -67,7 +65,7 @@ func (s *Server) sendTestData() {
 	for {
 		s.pushEvent([]byte(strconv.FormatUint(uint64(i), 10)))
 		i += 1
-		time.Sleep(2 * time.Second)
-		fmt.Println(".")
+		//time.Sleep(2 * time.Second)
+		//fmt.Println(".")
 	}
 }

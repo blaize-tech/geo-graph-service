@@ -1,19 +1,21 @@
 package main
 
 import (
-	"fmt"
 	"encoding/binary"
+	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
+	"gopkg.in/mgo.v2"
+	"log"
 )
 
-const ClientMaxEventBufferSize int = 3
+const ClientMaxEventBufferSize int = 1
 
 
 type Client struct {
 	S *Server
 	Conn *websocket.Conn
-	//Database *DB
-
+	Database *mgo.Database
 	Event chan []byte
 	PendingEvents ConcurrentSlice
 }
@@ -28,7 +30,7 @@ func (c *Client) listenEvents() {
 
 func (c *Client) writeEvents() error {
 	for {
-		if len(c.PendingEvents.Items) > ClientMaxEventBufferSize {
+		if len(c.PendingEvents.Items) >= ClientMaxEventBufferSize {
 			events := c.PendingEvents.dumpSlice()
 			if err := c.writeUint64(uint64(len(events))); err != nil {
 				return err
@@ -60,10 +62,24 @@ func (c *Client) run() {
 }
 
 func (c *Client) sendDB() error {
-	//Database.Wg1.Wait()
-	//Database.Wg2.Add(1)
+	//var wg sync.WaitGroup
+	//Database.wg.Wait()
+	//Database. Wg2.Add(1)
 	//defer Database.Wg2.Done()
-	nodes := [][]byte{ []byte(`123`), []byte(`456`) } //TODO: replace with db request
+
+	rsTrustlines, rsPayments := geItems()
+
+	bsTrustlines, err := json.Marshal(rsTrustlines)
+	if err !=nil {
+		log.Println("Error:",err)
+	}
+
+	bsPayments, err := json.Marshal(rsPayments)
+	if err !=nil {
+		log.Println("Error:",err)
+	}
+
+	nodes := [][]byte{ []byte(bsTrustlines), []byte(bsPayments) } //TODO: replace with db request
 	if err := c.writeUint64(uint64(len(nodes))); err != nil {
 		return err
 	}
@@ -77,8 +93,8 @@ func (c *Client) sendDB() error {
 
 func (c *Client) write(bytes []byte) error {
 	if err := c.Conn.WriteMessage(websocket.BinaryMessage, bytes); err != nil {
-        fmt.Println(err)
-        return err
+		fmt.Println(err)
+		return err
 	}
 	return nil
 }
