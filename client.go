@@ -67,27 +67,30 @@ func (c *Client) sendDB() error {
 	//Database. Wg2.Add(1)
 	//defer Database.Wg2.Done()
 
-	rsTrustlines, rsPayments := geItems()
+	rsTrustlines, _ := geItems()
 
-	bsTrustlines, err := json.Marshal(rsTrustlines)
-	if err !=nil {
-		log.Println("Error:",err)
-	}
-
-	bsPayments, err := json.Marshal(rsPayments)
-	if err !=nil {
-		log.Println("Error:",err)
-	}
-
-	nodes := [][]byte{ []byte(bsTrustlines), []byte(bsPayments) } //TODO: replace with db request
-	if err := c.writeUint64(uint64(len(nodes))); err != nil {
-		return err
-	}
-	for _, node := range nodes {
-		if err := c.write(node); err != nil {
+	for _, node := range rsTrustlines {
+		bsnode, err := json.Marshal(node)
+		if err !=nil {
+			log.Println("Error:",err)
+		}
+		if err := c.write(bsnode); err != nil {
+			log.Println("Error:",err)
 			return err
 		}
 	}
+
+	//nodes := [][]byte{ []byte(bsTrustlines), []byte(bsPayments) } //TODO: replace with db request
+	//nodes := bsTrustlines //TODO: replace with db request
+	//log.Println(nodes)
+	//if err := c.writeUint64(uint64(len(nodes))); err != nil {
+	//	return err
+	//}
+	//for _, node := range nodes {
+	//	if err := c.write(node); err != nil {
+	//		return err
+	//	}
+	//}
 	return nil
 }
 

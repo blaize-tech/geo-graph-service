@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+type geoItem struct {
+	Trustlines []Trustline
+	Payments []Payment
+}
 
 func handleError(err error, message string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
@@ -19,21 +23,12 @@ func getAllItems(w http.ResponseWriter, req *http.Request) {
 
 	rsTrustlines, rsPayments := geItems()
 
-	bsTrustlines, err := json.Marshal(rsTrustlines)
+	tp := geoItem{rsTrustlines, rsPayments}
+	bs, err := json.Marshal(tp)
 	if err != nil {
 		handleError(err, "Failed to load marshal data: %v", w)
 		return
 	}
-
-	bsPayments, err := json.Marshal(rsPayments)
-	if err != nil {
-		handleError(err, "Failed to load marshal data: %v", w)
-		return
-	}
-
-	bs := bsTrustlines
-	bs = append(bs, bsPayments...)
-
 	w.Write(bs)
 }
 

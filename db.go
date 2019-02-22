@@ -98,12 +98,13 @@ func removeItem(hash string, tableName string) error {
 func clearAll() error {
 
 	rsTrustlines, err := getAllTrustlines()
+	log.Println(len(rsTrustlines))
 	if err != nil {
 		log.Println("Failed to load database items:", err)
 		return err
 	}
 	for i:=0;i<len(rsTrustlines);i++ {
-		removeItem(rsTrustlines[i].Source, "trustline")
+		log.Println(removeItem(rsTrustlines[i].Source, "trustline"))
 	}
 
 	rsPayments, err := getAllPayments()
@@ -112,7 +113,7 @@ func clearAll() error {
 		return err
 	}
 	for i:=0;i<len(rsPayments);i++ {
-		removeItem(rsPayments[i].Source, "payment")
+		log.Println(removeItem(rsPayments[i].Source, "payment"))
 	}
 	return nil
 }

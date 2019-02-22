@@ -21,6 +21,7 @@ func main() {
 	}
 
 	http.HandleFunc("/api/v1/updates", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		if r.Method == "GET" {
 			getAllItems(w, r)
 		} else {
@@ -54,11 +55,7 @@ func main() {
 		}
 
 	})
-	//
-	//err := http.ListenAndServe(":3000", nil)
-	//if err != nil {
-	//	fmt.Println("ListenAndServe: ", err)
-	//}
+
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
