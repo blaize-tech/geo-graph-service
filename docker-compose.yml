@@ -1,0 +1,17 @@
+version: '2'
+
+services:
+  api:
+    build: ./api
+    ports:
+      - 3000:3000
+    volumes:
+      - ./api:/api
+    links:
+      - database
+    environment:
+      - DB_NAME=project
+
+  database:
+    image: mongo:latest
+    command: mongod --smallfiles --quiet --logpath=/dev/null
