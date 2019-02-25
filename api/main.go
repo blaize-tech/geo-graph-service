@@ -1,9 +1,8 @@
-package api
+package main
 
 import (
 	"fmt"
 	"net/http"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -74,6 +73,4 @@ func main() {
 	if err != nil {
 		fmt.Println("ListenAndServe: ", err)
 	}
-
-
 }

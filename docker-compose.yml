@@ -2,16 +2,27 @@ version: '2'
 
 services:
   api:
-    build: ./api
+    container_name: 'api-run'
+    build: './api'
     ports:
-      - 3000:3000
+      - '3000:3000'
     volumes:
-      - ./api:/api
-    links:
-      - database
+      - './api:/go/src/github.com/GeoServer/project/api'
     environment:
       - DB_NAME=project
+    depends_on:
+      - 'mongo'
+    links:
+      - mongo:mongo
+    networks:
+      - samplenetwork
 
-  database:
-    image: mongo:latest
-    command: mongod --smallfiles --quiet --logpath=/dev/null
+  mongo:
+    image: 'mongo:latest'
+    ports:
+      - '27017:27017'
+    networks:
+      - samplenetwork
+
+networks:
+  samplenetwork:
