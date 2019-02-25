@@ -15,4 +15,4 @@ RUN go install github.com/GeoServer/project/api
 ENTRYPOINT /go/bin/api
 
 # Expose default port (3000)
-EXPOSE 3000
+EXPOSE 3030
