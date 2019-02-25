@@ -69,7 +69,7 @@ func main() {
 		s.register <- &client
 	})
 
-	err := http.ListenAndServe(":3000", nil)
+	err := http.ListenAndServe(":3030", nil)
 	if err != nil {
 		fmt.Println("ListenAndServe: ", err)
 	}
