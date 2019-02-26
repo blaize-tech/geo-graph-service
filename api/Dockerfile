@@ -12,7 +12,7 @@ RUN go get gopkg.in/mgo.v2/bson
 RUN go install github.com/GeoServer/project/api
 
 # Set binary as entrypoint
-ENTRYPOINT /go/bin/api
+ENTRYPOINT /go/bin/api --port 3030
 
-# Expose default port (3000)
+# Expose default port (3030)
 EXPOSE 3030

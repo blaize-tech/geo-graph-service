@@ -15,14 +15,25 @@ services:
     links:
       - mongo:mongo
     networks:
-      - samplenetwork
+      - dbnetwork
+      - webnetwork
 
   mongo:
     image: 'mongo:latest'
     ports:
       - '27017:27017'
     networks:
-      - samplenetwork
+      - dbnetwork
+
+  nginx:
+    build: "./nginx"
+    ports:
+      - "8080:8020"
+    depends_on:
+      - "api"
+    networks:
+      - webnetwork
 
 networks:
-  samplenetwork:
+  dbnetwork:
+  webnetwork:
