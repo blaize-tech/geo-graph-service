@@ -44,13 +44,13 @@ func (c *Client) writeEvents() error {
 				}
 			}
 			lastWriteTime = time.Now()
-		} else if (now := time.Now(); now.Sub(lastWriteTime).Seconds() > PingIntervalSec) {
+		} else if now := time.Now(); int((now.Sub(lastWriteTime)).Seconds()) > PingIntervalSec {
 			// if no events for a long time then ping client to ensure that it is still connected
 			lastWriteTime = now
 			if err := c.writeUint64(uint64(0)); err != nil {
 				return err
 			}
-			_, _, err := ws.ReadMessage()
+			_, _, err := c.Conn.ReadMessage()
 			if err != nil {
 				return err
 			}

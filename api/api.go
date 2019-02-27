@@ -68,16 +68,24 @@ func postTrustlineItem(s *Server, w http.ResponseWriter, req *http.Request) {
 	trustline.Time = time.Now()
 	// 0 - remove data 1 - set data or update
 	if trustline.Op {
-		_, err := getTrustline(trustline.Source)
+		rt, err := getTrustline(trustline.Source)
+
 		if err != nil {
 			if err := saveItem(trustline, "trustline"); err != nil {
 				handleError(err, "Failed to save data: %v", w)
 				return
 			}
 		} else {
-			if err := updateTrustline(trustline); err != nil {
-				handleError(err, "Failed to update data: %v", w)
-				return
+			if rt.Destination != trustline.Destination {
+				if err := saveItem(trustline, "trustline"); err != nil {
+					handleError(err, "Failed to save data: %v", w)
+					return
+				}
+			} else {
+				if err := updateTrustline(trustline); err != nil {
+					handleError(err, "Failed to update data: %v", w)
+					return
+				}
 			}
 		}
 	} else {
