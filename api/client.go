@@ -7,9 +7,11 @@ import (
 	"github.com/gorilla/websocket"
 	"gopkg.in/mgo.v2"
 	"log"
+	"time"
 )
 
 const ClientMaxEventBufferSize int = 1
+const PingIntervalSec int = 5
 
 
 type Client struct {
@@ -29,6 +31,7 @@ func (c *Client) listenEvents() {
 }
 
 func (c *Client) writeEvents() error {
+	lastWriteTime := time.Now()
 	for {
 		if len(c.PendingEvents.Items) >= ClientMaxEventBufferSize {
 			events := c.PendingEvents.dumpSlice()
@@ -39,6 +42,17 @@ func (c *Client) writeEvents() error {
 				if err := c.write(event); err != nil {
 					return err
 				}
+			}
+			lastWriteTime = time.Now()
+		} else if (now := time.Now(); now.Sub(lastWriteTime).Seconds() > PingIntervalSec) {
+			// if no events for a long time then ping client to ensure that it is still connected
+			lastWriteTime = now
+			if err := c.writeUint64(uint64(0)); err != nil {
+				return err
+			}
+			_, _, err := ws.ReadMessage()
+			if err != nil {
+				return err
 			}
 		}
 	}
