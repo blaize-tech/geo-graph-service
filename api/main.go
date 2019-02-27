@@ -63,11 +63,12 @@ func main() {
 			return
 		}
 		client := Client { Conn: conn,
-			Event: make(chan []byte),
 			S: s }
-		client.run()
-		s.register <- &client
-		fmt.Println("Registered")
+		client.readPing()
+		err = client.sendDB()
+		if err == nil {
+			s.register <- &client
+		}
 	})
 
 	err := http.ListenAndServe(":3030", nil)

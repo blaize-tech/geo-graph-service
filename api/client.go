@@ -11,67 +11,44 @@ import (
 )
 
 const ClientMaxEventBufferSize int = 1
-const PingIntervalSec int = 5
+const PingIntervalSec int = 10
 
 
 type Client struct {
 	S *Server
 	Conn *websocket.Conn
 	Database *mgo.Database
-	Event chan []byte
 	PendingEvents ConcurrentSlice
 }
 
 
-func (c *Client) listenEvents() {
-	for {
-		event := <- c.Event
-		c.PendingEvents.append(event)
-	}
-}
-
-func (c *Client) writeEvents() error {
-	lastWriteTime := time.Now()
-	for {
-		if len(c.PendingEvents.Items) >= ClientMaxEventBufferSize {
-			events := c.PendingEvents.dumpSlice()
-			if err := c.writeUint64(uint64(len(events))); err != nil {
-				return err
-			}
-			for _, event := range events {
-				if err := c.write(event); err != nil {
-					return err
-				}
-			}
-			lastWriteTime = time.Now()
-		} else if now := time.Now(); int((now.Sub(lastWriteTime)).Seconds()) > PingIntervalSec {
-			// if no events for a long time then ping client to ensure that it is still connected
-			lastWriteTime = now
-			if err := c.writeUint64(uint64(0)); err != nil {
-				return err
-			}
-			_, _, err := c.Conn.ReadMessage()
-			if err != nil {
-				return err
+func (c *Client) pushEvent(event []byte) {
+	c.PendingEvents.append(event)
+	if len(c.PendingEvents.Items) >= ClientMaxEventBufferSize {
+		events := c.PendingEvents.dumpSlice()
+		if err := c.writeUint64(uint64(len(events))); err != nil {
+			c.Conn.Close()
+			return
+		}
+		for _, event := range events {
+			if err := c.write(event); err != nil {
+				c.Conn.Close()
+				return
 			}
 		}
 	}
 }
 
-func (c *Client) pushEvent(event []byte) {
-	c.Event <- event
-}
-
-func (c *Client) run() {
-	go c.listenEvents()
+func (c * Client) readPing() {
 	go func() {
-		defer func() {
-			c.S.unregister <- c
-			fmt.Println("Unregistered")
-			c.Conn.Close()
-		}()
-		if err := c.sendDB(); err == nil {
-			c.writeEvents()
+		for {
+			c.Conn.SetReadDeadline(time.Now().Add(PingIntervalSec * time.Second))
+			_, _, err := c.Conn.ReadMessage()
+			if err != nil {
+				c.Conn.Close()
+				c.S.unregister <- c
+				return
+			}
 		}
 	}()
 }

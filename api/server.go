@@ -34,9 +34,11 @@ func (s *Server) run() {
 		select {
 		case client := <-s.register:
 			s.clients[client] = true
+			fmt.Println("Connected")
 		case client := <-s.unregister:
 			if _, ok := s.clients[client]; ok {
 				delete(s.clients, client)
+				fmt.Println("Disconnected")
 			}
 		case event := <-s.event:
 			s.PendingEvents.append(event)
