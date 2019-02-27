@@ -67,6 +67,7 @@ func main() {
 			S: s }
 		client.run()
 		s.register <- &client
+		fmt.Println("Registered")
 	})
 
 	err := http.ListenAndServe(":3030", nil)

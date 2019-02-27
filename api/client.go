@@ -53,6 +53,7 @@ func (c *Client) run() {
 	go func() {
 		defer func() {
 			c.S.unregister <- c
+			fmt.Println("Unregistered")
 			c.Conn.Close()
 		}()
 		if err := c.sendDB(); err == nil {

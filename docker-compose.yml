@@ -6,6 +6,8 @@ services:
     build: './api'
     ports:
       - '3030:3030'
+    expose:
+      - '27017'
     volumes:
       - './api:/go/src/github.com/GeoServer/project/api'
     environment:
