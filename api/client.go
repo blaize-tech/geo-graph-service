@@ -42,7 +42,7 @@ func (c *Client) pushEvent(event []byte) {
 func (c * Client) readPing() {
 	go func() {
 		for {
-			c.Conn.SetReadDeadline(time.Now().Add(PingIntervalSec * time.Second))
+			c.Conn.SetReadDeadline(time.Now().Add(time.Duration( PingIntervalSec * time.Now().Second())))
 			_, _, err := c.Conn.ReadMessage()
 			if err != nil {
 				c.Conn.Close()
