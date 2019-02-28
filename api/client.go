@@ -45,7 +45,6 @@ func (c * Client) readPing() {
 			c.Conn.SetReadDeadline(time.Now().Add(time.Duration( PingIntervalSec) * time.Second))
 			_, _, err := c.Conn.ReadMessage()
 			if err != nil {
-				fmt.Println(err.Error())
 				c.Conn.Close()
 				c.S.unregister <- c
 				return
