@@ -20,6 +20,7 @@ func main() {
 	}
 
 	http.HandleFunc("/api/v1/updates", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("Lppppppp")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		if r.Method == "GET" {
 			getAllItems(w, r)
