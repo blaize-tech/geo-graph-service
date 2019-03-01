@@ -54,11 +54,6 @@ func (c * Client) readPing() {
 }
 
 func (c *Client) sendDB() error {
-	//var wg sync.WaitGroup
-	//Database.wg.Wait()
-	//Database. Wg2.Add(1)
-	//defer Database.Wg2.Done()
-
 	rsTrustlines, _ := geItems()
 
 	for _, node := range rsTrustlines {
@@ -71,18 +66,6 @@ func (c *Client) sendDB() error {
 			return err
 		}
 	}
-
-	//nodes := [][]byte{ []byte(bsTrustlines), []byte(bsPayments) } //TODO: replace with db request
-	//nodes := bsTrustlines //TODO: replace with db request
-	//log.Println(nodes)
-	//if err := c.writeUint64(uint64(len(nodes))); err != nil {
-	//	return err
-	//}
-	//for _, node := range nodes {
-	//	if err := c.write(node); err != nil {
-	//		return err
-	//	}
-	//}
 	return nil
 }
 

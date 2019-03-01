@@ -1,7 +1,6 @@
 package main
 
 import (
-	"strconv"
 	"fmt"
 )
 
@@ -30,16 +29,16 @@ func (s *Server) pushEvent(event []byte) {
 }
 
 func (s *Server) run() {
-	go s.writeEvents()
 	for {
 		select {
 		case client := <-s.register:
 			s.clients[client] = true
-			fmt.Println("Connected")
 		case client := <-s.unregister:
 			if _, ok := s.clients[client]; ok {
 				delete(s.clients, client)
-				fmt.Println("Disconnected")
+				for client := range s.clients {
+					fmt.Println(client)
+				}
 			}
 		case event := <-s.event:
 			s.PendingEvents.append(event)
@@ -47,28 +46,5 @@ func (s *Server) run() {
 				client.pushEvent(event)
 			}
 		}
-	}
-}
-
-//need to do this job in another thread
-//in order to have possibility to write events to db after some time passed
-func (s *Server) writeEvents() {
-	for {
-		if len(s.PendingEvents.Items) >= ServerMaxEventBufferSize {
-			events := s.PendingEvents.dumpSlice()
-			_ = events
-			//lock & update DB
-		}
-	}
-}
-
-//for test
-func (s *Server) sendTestData() {
-	i := 0
-	for {
-		s.pushEvent([]byte(strconv.FormatUint(uint64(i), 10)))
-		i += 1
-		//time.Sleep(2 * time.Second)
-		//fmt.Println(".")
 	}
 }

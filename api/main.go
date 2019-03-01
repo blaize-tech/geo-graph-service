@@ -9,7 +9,6 @@ import (
 func main() {
 	s := newServer()
 	go s.run()
-	//go s.sendTestData()
 
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -59,11 +58,11 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			fmt.Println(err)
 			return
 		}
 		client := Client { Conn: conn,
 			S: s }
+
 		client.readPing()
 		err = client.sendDB()
 		if err == nil {
