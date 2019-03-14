@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"time"
-
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -25,11 +24,10 @@ type Payment struct {
 var db *mgo.Database
 
 func init() {
-	session, err := mgo.Dial("172.17.0.1:27017/api_db")
+	session, err := mgo.Dial("172.17.0.1:25017/api_db")
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-
 	db = session.DB("api_db")
 }
 // getCollection return collection from database

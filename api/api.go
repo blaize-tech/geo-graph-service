@@ -116,10 +116,6 @@ func postPaymentItem(s *Server, w http.ResponseWriter, req *http.Request) {
 
 	payment.Time = time.Now()
 
-	if err := saveItem(payment, "payment"); err != nil {
-		handleError(err, "Failed to save data: %v", w)
-		return
-	}
 
 	w.Write([]byte("OK"))
 }

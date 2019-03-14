@@ -7,7 +7,7 @@ services:
     ports:
       - '3030:3030'
     expose:
-      - '27017'
+      - '25017'
     volumes:
       - './api:/go/src/github.com/GeoServer/project/api'
     environment:
@@ -23,7 +23,7 @@ services:
   mongo:
     image: 'mongo:latest'
     ports:
-      - '27017:27017'
+      - '25017:27017'
     networks:
       - dbnetwork
 
