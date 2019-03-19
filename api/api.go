@@ -8,28 +8,9 @@ import (
 	"time"
 )
 
-type geoItem struct {
-	Trustlines []Trustline
-	Payments []Payment
-}
-
 func handleError(err error, message string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Write([]byte(fmt.Sprintf(message, err)))
-}
-
-// GetAllItems returns a list of all database items to the response.
-func getAllItems(w http.ResponseWriter, req *http.Request) {
-
-	rsTrustlines, rsPayments := geItems()
-
-	tp := geoItem{rsTrustlines, rsPayments}
-	bs, err := json.Marshal(tp)
-	if err != nil {
-		handleError(err, "Failed to load marshal data: %v", w)
-		return
-	}
-	w.Write(bs)
 }
 
 func geItems() ([]Trustline, []Payment){
@@ -116,7 +97,10 @@ func deleteTrustlineItem(s *Server, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := removeItem(trustline.Source, trustline.Destination, "trustline"); err != nil {
+	errFirst := removeItem(trustline.Source, trustline.Destination, "trustline");
+	errSecond := removeItem(trustline.Destination, trustline.Source, "trustline");
+
+	if  errFirst != nil && errSecond != nil{
 		handleError(err, "Failed to remove data: %v", w)
 		return
 	}

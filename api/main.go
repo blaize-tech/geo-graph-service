@@ -18,15 +18,6 @@ func main() {
 		},
 	}
 
-	http.HandleFunc("/api/v1/updates", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		if r.Method == "GET" {
-			getAllItems(w, r)
-		} else {
-			http.Error(w, "Invalid request method.", 405)
-		}
-	})
-
 	http.HandleFunc("/api/v1/trustlines", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			postTrustlineItem(s, w, r)
