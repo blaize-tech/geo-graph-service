@@ -2,3 +2,4 @@
 vendor
 bin
 Gopkg.lock
+conf.json

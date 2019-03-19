@@ -30,10 +30,11 @@ func main() {
 	http.HandleFunc("/api/v1/trustlines", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			postTrustlineItem(s, w, r)
+		} else if  r.Method == "DELETE"{
+			deleteTrustlineItem(s, w, r)
 		} else {
 			http.Error(w, "Invalid request method.", 405)
 		}
-
 	})
 
 	http.HandleFunc("/api/v1/payments", func(w http.ResponseWriter, r *http.Request) {
@@ -42,12 +43,20 @@ func main() {
 		} else {
 			http.Error(w, "Invalid request method.", 405)
 		}
-
 	})
+
 
 	http.HandleFunc("/api/v1/clear", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-			deleteItem(w, r)
+			if r.FormValue("key") == ""{
+				http.Error(w, "Invalid request method.", 405)
+			} else if r.FormValue("key") == getConfig().Key {
+				deleteItem(w, r)
+			} else {
+				http.Error(w, "Invalid key.", 405)
+			}
+
+
 		} else {
 			http.Error(w, "Invalid request method.", 405)
 		}

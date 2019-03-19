@@ -1,24 +1,24 @@
 package main
 
 import (
-	"log"
-	"time"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"log"
+	"time"
 )
 
 type Trustline struct {
 	Source       	string  	`json:"nodeHashFrom" bson:"nodeHash"`
 	Destination 	string  	`json:"nodeHashTo" bson:"nodeHashWith"`
-	Op     			bool    	`json:"op" bson:"op"`
+	Delete			bool
 	Time      		time.Time	`bson:"time"`
 }
 
 type Payment struct {
-	Source       	string  	`json:"fromNodeHash" bson:"nodeHash"`
-	Destination 	string  	`json:"toNodeHash" bson:"nodeHashWith"`
+	Source       	string  	`json:"nodeHashFrom" bson:"nodeHash"`
+	Destination 	string  	`json:"nodeHashTo" bson:"nodeHashWith"`
 	Time      		time.Time	`bson:"time"`
-	Paths     		[]string   	`json:"paths" bson:"pathHashs"`
+	Paths     		[][]string   	`json:"paths" bson:"pathHashs"`
 }
 
 var db *mgo.Database
@@ -89,8 +89,8 @@ func saveItem(item interface{}, tableName string) error {
 }
 
 // remove deletes an item from the table of database
-func removeItem(hash string, tableName string) error {
-	return getCollection(tableName).Remove(bson.M{"nodeHash": hash})
+func removeItem(hash string, hashWith string, tableName string) error {
+	return getCollection(tableName).Remove(bson.M{"nodeHash": hash,	"nodeHashWith": hashWith})
 }
 
 func clearAll() error {
@@ -102,7 +102,7 @@ func clearAll() error {
 		return err
 	}
 	for i:=0;i<len(rsTrustlines);i++ {
-		log.Println(removeItem(rsTrustlines[i].Source, "trustline"))
+		log.Println(removeItem(rsTrustlines[i].Source, rsTrustlines[i].Destination, "trustline"))
 	}
 
 	rsPayments, err := getAllPayments()
@@ -111,7 +111,7 @@ func clearAll() error {
 		return err
 	}
 	for i:=0;i<len(rsPayments);i++ {
-		log.Println(removeItem(rsPayments[i].Source, "payment"))
+		log.Println(removeItem(rsPayments[i].Source, rsTrustlines[i].Destination, "payment"))
 	}
 	return nil
 }

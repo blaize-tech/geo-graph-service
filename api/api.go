@@ -60,42 +60,76 @@ func postTrustlineItem(s *Server, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	//write bytes to event
-	bs, err := json.Marshal(trustline)
-	s.pushEvent(bs)
-
 	//set current time
 	trustline.Time = time.Now()
-	// 0 - remove data 1 - set data or update
-	if trustline.Op {
-		rt, err := getTrustline(trustline.Source)
 
-		if err != nil {
+	//if another node empty create it
+	_, err = getTrustline(trustline.Destination)
+	if err != nil {
+		newTrustline := Trustline{trustline.Destination, trustline.Destination, false, trustline.Time}
+		if err := saveItem(newTrustline, "trustline"); err != nil {
+			handleError(err, "Failed to save data of Destination: %v", w)
+			return
+		} else {
+			//write bytes to event
+			bs, _ := json.Marshal(newTrustline)
+			s.pushEvent(bs)
+		}
+	}
+
+	rt, err := getTrustline(trustline.Source)
+	if err != nil {
+		if err := saveItem(trustline, "trustline"); err != nil {
+			handleError(err, "Failed to save data of Source: %v", w)
+			return
+		}
+	} else {
+		if rt.Destination != trustline.Destination {
 			if err := saveItem(trustline, "trustline"); err != nil {
 				handleError(err, "Failed to save data: %v", w)
 				return
 			}
 		} else {
-			if rt.Destination != trustline.Destination {
-				if err := saveItem(trustline, "trustline"); err != nil {
-					handleError(err, "Failed to save data: %v", w)
-					return
-				}
-			} else {
-				if err := updateTrustline(trustline); err != nil {
-					handleError(err, "Failed to update data: %v", w)
-					return
-				}
+			if err := updateTrustline(trustline); err != nil {
+				handleError(err, "Failed to update data: %v", w)
+				return
 			}
 		}
-	} else {
-		if err := removeItem(trustline.Source, "trustline"); err != nil {
-			handleError(err, "Failed to remove data: %v", w)
-			return
-		}
 	}
+
+	//write bytes to event
+	bs, _ := json.Marshal(trustline)
+	s.pushEvent(bs)
+
 	w.Write([]byte("OK"))
 }
+
+func deleteTrustlineItem(s *Server, w http.ResponseWriter, req *http.Request) {
+	var trustline = new(Trustline)
+	if req.Body == nil {
+		http.Error(w, "Please send a request body", 400)
+		return
+	}
+	err := json.NewDecoder(req.Body).Decode(&trustline)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	if err := removeItem(trustline.Source, trustline.Destination, "trustline"); err != nil {
+		handleError(err, "Failed to remove data: %v", w)
+		return
+	}
+
+	trustline.Delete = true
+
+	//write bytes to event
+	bs, err := json.Marshal(trustline)
+	s.pushEvent(bs)
+
+	w.Write([]byte("OK"))
+}
+
 
 func postPaymentItem(s *Server, w http.ResponseWriter, req *http.Request) {
 
@@ -115,7 +149,6 @@ func postPaymentItem(s *Server, w http.ResponseWriter, req *http.Request) {
 	s.pushEvent(bs)
 
 	payment.Time = time.Now()
-
 
 	w.Write([]byte("OK"))
 }
