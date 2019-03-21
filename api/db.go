@@ -6,8 +6,12 @@ import (
 	"log"
 	"time"
 )
+type Node struct {
+	Hash string `json:"hash" bson:"hash"`
+}
 
 type Trustline struct {
+	//Id				string		`bson:"id"`
 	Source       	string  	`json:"nodeHashFrom" bson:"nodeHash"`
 	Destination 	string  	`json:"nodeHashTo" bson:"nodeHashWith"`
 	Delete			bool
@@ -30,6 +34,7 @@ func init() {
 	}
 	db = session.DB("api_db")
 }
+
 // getCollection return collection from database
 // trustline payment
 func getCollection(tableName string) *mgo.Collection {
@@ -51,6 +56,30 @@ func getAllPayments() ([]Payment, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+func getTrustlinesByDestination(hash string)([]Trustline, error ){
+	res := []Trustline{}
+	if err := getCollection("trustline").Find(bson.M{"nodeHashWith": hash}).All(&res); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func getTrustlinesBySource(hash string)([]Trustline, error ){
+	res := []Trustline{}
+	if err := getCollection("trustline").Find(bson.M{"nodeHash": hash}).All(&res); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func findTrustline(hashSource string, hashDestination string) (*Trustline, error) {
+	res := Trustline{}
+	if err := getCollection("trustline").Find(bson.M{"nodeHash": hashSource, "nodeHashWith": hashDestination}).One(&res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
 // getTrustline returns a single item from the database.

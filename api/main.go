@@ -20,9 +20,9 @@ func main() {
 
 	http.HandleFunc("/api/v1/nodes", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			postTrustlineItem(s, w, r)
+			postNodeItem(s, w, r)
 		} else if  r.Method == "DELETE"{
-			deleteTrustlineItem(s, w, r)
+			deleteNodesItem(s, w, r)
 		} else {
 			http.Error(w, "Invalid request method.", 405)
 		}
