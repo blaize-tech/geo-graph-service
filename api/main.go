@@ -18,6 +18,16 @@ func main() {
 		},
 	}
 
+	http.HandleFunc("/api/v1/nodes", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			postTrustlineItem(s, w, r)
+		} else if  r.Method == "DELETE"{
+			deleteTrustlineItem(s, w, r)
+		} else {
+			http.Error(w, "Invalid request method.", 405)
+		}
+	})
+
 	http.HandleFunc("/api/v1/trustlines", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			postTrustlineItem(s, w, r)

@@ -45,16 +45,18 @@ func postTrustlineItem(s *Server, w http.ResponseWriter, req *http.Request) {
 	trustline.Time = time.Now()
 
 	//if another node empty create it
-	_, err = getTrustline(trustline.Destination)
-	if err != nil {
-		newTrustline := Trustline{trustline.Destination, trustline.Destination, false, trustline.Time}
-		if err := saveItem(newTrustline, "trustline"); err != nil {
-			handleError(err, "Failed to save data of Destination: %v", w)
-			return
-		} else {
-			//write bytes to event
-			bs, _ := json.Marshal(newTrustline)
-			s.pushEvent(bs)
+	if trustline.Destination != trustline.Source {
+		_, err = getTrustline(trustline.Destination)
+		if err != nil {
+			newTrustline := Trustline{trustline.Destination, trustline.Destination, false, trustline.Time}
+			if err := saveItem(newTrustline, "trustline"); err != nil {
+				handleError(err, "Failed to save data of Destination: %v", w)
+				return
+			} else {
+				//write bytes to event
+				bs, _ := json.Marshal(newTrustline)
+				s.pushEvent(bs)
+			}
 		}
 	}
 

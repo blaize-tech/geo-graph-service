@@ -1,5 +1,4 @@
 .idea/
-vendor
+api/conf.json
 bin
 Gopkg.lock
-conf.json
