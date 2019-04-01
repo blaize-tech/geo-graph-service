@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -19,19 +20,30 @@ func main() {
 	}
 
 	http.HandleFunc("/api/v1/nodes", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" {
-			postNodeItem(s, w, r)
-		} else if  r.Method == "DELETE"{
-			deleteNodesItem(s, w, r)
-		} else {
+		switch r.Method {
+		case "POST":
+			createNode(s, w, r)
+		case "DELETE":
+			deleteNode(s, w, r)
+		default:
 			http.Error(w, "Invalid request method.", 405)
 		}
 	})
 
+	// http.HandleFunc("/api/v1/nodes", func(w http.ResponseWriter, r *http.Request) {
+	// 	if r.Method == "POST" {
+	// 		postNodeItem(s, w, r)
+	// 	} else if r.Method == "DELETE" {
+	// 		deleteNodesItem(s, w, r)
+	// 	} else {
+	// 		http.Error(w, "Invalid request method.", 405)
+	// 	}
+	// })
+
 	http.HandleFunc("/api/v1/trustlines", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			postTrustlineItem(s, w, r)
-		} else if  r.Method == "DELETE"{
+		} else if r.Method == "DELETE" {
 			deleteTrustlineItem(s, w, r)
 		} else {
 			http.Error(w, "Invalid request method.", 405)
@@ -46,10 +58,9 @@ func main() {
 		}
 	})
 
-
 	http.HandleFunc("/api/v1/clear", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-			if r.FormValue("key") == ""{
+			if r.FormValue("key") == "" {
 				http.Error(w, "Invalid request method.", 405)
 			} else if r.FormValue("key") == getConfig().Key {
 				deleteItem(w, r)
@@ -57,21 +68,19 @@ func main() {
 				http.Error(w, "Invalid key.", 405)
 			}
 
-
 		} else {
 			http.Error(w, "Invalid request method.", 405)
 		}
 
 	})
 
-
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			return
 		}
-		client := Client { Conn: conn,
-			S: s }
+		client := Client{Conn: conn,
+			S: s}
 
 		client.readPing()
 		err = client.sendDB()

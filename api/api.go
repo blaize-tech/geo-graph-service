@@ -13,19 +13,45 @@ func handleError(err error, message string, w http.ResponseWriter) {
 	w.Write([]byte(fmt.Sprintf(message, err)))
 }
 
-func geItems() ([]Trustline, []Payment){
+func geItems() ([]Trustline, []Payment) {
 	rsTrustlines, err := getAllTrustlines()
 	if err != nil {
-		log.Println( "Failed to load database items:", err)
+		log.Println("Failed to load database items:", err)
 		rsTrustlines = nil
 	}
 
 	rsPayments, err := getAllPayments()
 	if err != nil {
-		log.Println( "Failed to load database items:", err)
+		log.Println("Failed to load database items:", err)
 	}
 
 	return rsTrustlines, rsPayments
+}
+
+func createNode1(s *Server, w http.ResponseWriter, req *http.Request) {
+	var node = new(Node)
+	if req.Body == nil {
+		http.Error(w, "Please send a request body", 400)
+		return
+	}
+
+	err := json.NewDecoder(req.Body).Decode(&node)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+	_, err = findNode(node.Hash)
+	if err != nil {
+		if err := saveItem(node, "nodes"); err != nil {
+			handleError(err, "Failed to insert node data in db: %v", w)
+			return
+		}
+		w.Write([]byte("OK"))
+		return
+	} else {
+		w.Write([]byte("Node is already exists!"))
+		return
+	}
 }
 
 // create node
@@ -83,13 +109,13 @@ func deleteNodesItem(s *Server, w http.ResponseWriter, req *http.Request) {
 		rts, err := getTrustlinesBySource(trustline.Source)
 		rtd, err := getTrustlinesByDestination(trustline.Destination)
 
-		if err != nil || len(rtd)<=1 || len(rts)<=1 {
-			err := removeItem(trustline.Source, trustline.Destination, "trustline");
-			if  err != nil {
+		if err != nil || len(rtd) <= 1 || len(rts) <= 1 {
+			err := removeItem(trustline.Source, trustline.Destination, "trustline")
+			if err != nil {
 				handleError(err, "Failed to remove noda: %v", w)
 				return
 			} else {
-				trustline.Delete = true
+				//	trustline.Delete = true
 
 				//write bytes to event
 				bs, _ := json.Marshal(trustline)
@@ -106,8 +132,46 @@ func deleteNodesItem(s *Server, w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// PostItem saves an item (form data) into the database.
-func postTrustlineItem(s *Server, w http.ResponseWriter, req *http.Request) {
+/*
+// delete node by DELETE in url
+func deleteNodesItem(s *Server, w http.ResponseWriter, req *http.Request) {
+	var trustline = new(Trustline)
+	node := req.FormValue("node")
+	if node == "" {
+		http.Error(w, "Please send a correct url parametrs", 400)
+		return
+	}
+	trustline.Source = node
+	trustline.Destination = node
+
+		rts, err := getTrustlinesBySource(trustline.Source)
+		rtd, err := getTrustlinesByDestination(trustline.Destination)
+
+		if err != nil || len(rtd) <= 1 || len(rts) <= 1 {
+			err := removeItem(trustline.Source, trustline.Destination, "trustline")
+			if err != nil {
+				handleError(err, "Failed to remove noda: %v", w)
+				return
+			} else {
+				//	trustline.Delete = true
+
+				//write bytes to event
+				bs, _ := json.Marshal(trustline)
+				s.pushEvent(bs)
+				w.Write([]byte("OK"))
+			}
+		} else {
+			handleError(err, "Failed to remove noda the trusline conected: %v", w)
+			return
+		}
+
+
+}
+*/
+
+///////////////////////////////////////////////////
+/*
+func addTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 	var trustline = new(Trustline)
 	if req.Body == nil {
 		http.Error(w, "Please send a request body", 400)
@@ -123,42 +187,23 @@ func postTrustlineItem(s *Server, w http.ResponseWriter, req *http.Request) {
 	trustline.Time = time.Now()
 
 	//if another nodes empty create it
+
+	if _, err := findNode(trustline.Destination); err != nil {
+		handleError(err, "Node doesnt exists", w)
+		return
+	}
+
+	if _, err := findNode(trustline.Source); err != nil {
+		handleError(err, "Node doesnt exists", w)
+		return
+	}
+
+	if _, err := findTrustline(trustline.Destination,trustline.Source);
+
+
 	if trustline.Destination != trustline.Source {
-		_, err := getTrustline(trustline.Source)
-		if err != nil {
-			newTrustline := Trustline{trustline.Source, trustline.Source, false, trustline.Time}
-			if err := saveItem(newTrustline, "trustline"); err != nil {
-				handleError(err, "Failed to create node: %v", w)
-				return
-			}
-		}
-		_, err = getTrustline(trustline.Destination)
-		if err != nil {
-			newTrustline := Trustline{trustline.Destination, trustline.Destination, false, trustline.Time}
-			if err := saveItem(newTrustline, "trustline"); err != nil {
-				handleError(err, "Failed to create node of Destination: %v", w)
-				return
-			} else {
-				//write bytes to event
-				bs, _ := json.Marshal(newTrustline)
-				s.pushEvent(bs)
-			}
-		}
 
-		_, errD := findTrustline(trustline.Destination, trustline.Source)
-		_, errS := findTrustline(trustline.Source, trustline.Destination)
 
-		if errS != nil && errD != nil {
-			if err := saveItem(trustline, "trustline"); err != nil {
-				handleError(err, "Failed to save data of Source: %v", w)
-				return
-			}
-		} else {
-			if err := updateTrustline(trustline); err != nil {
-				handleError(err, "Failed to update data: %v", w)
-				return
-			}
-		}
 
 		//write bytes to event
 		bs, _ := json.Marshal(trustline)
@@ -171,48 +216,17 @@ func postTrustlineItem(s *Server, w http.ResponseWriter, req *http.Request) {
 	}
 
 }
+*/
+/////////////////////////////////////////////////////////
 
-func deleteTrustlineItem(s *Server, w http.ResponseWriter, req *http.Request) {
-
-	var trustline = new(Trustline)
-	if req.Body == nil {
-		http.Error(w, "Please send a request body", 400)
+// DeleteItem removes a single item (identified by parameter) from the database.
+func deleteItem(w http.ResponseWriter, req *http.Request) {
+	if err := clearAll(); err != nil {
+		log.Printf("Failed to save data: %v", err)
 		return
 	}
-	err := json.NewDecoder(req.Body).Decode(&trustline)
-	if err != nil {
-		http.Error(w, err.Error(), 400)
-		return
-	}
-
-	if trustline.Source != trustline.Destination {
-		var errFirst, errSecond error
-		_, errS := findTrustline(trustline.Source, trustline.Destination)
-		if errS == nil {
-			errFirst = removeItem(trustline.Source, trustline.Destination, "trustline");
-		}
-		_, errD := findTrustline(trustline.Source, trustline.Destination)
-		if errD == nil {
-			errSecond = removeItem(trustline.Destination, trustline.Source, "trustline");
-		}
-		if errFirst != nil && errSecond != nil {
-			handleError(err, "Failed to remove data: %v", w)
-			return
-		}
-
-		trustline.Delete = true
-
-		//write bytes to event
-		bs, _ := json.Marshal(trustline)
-		s.pushEvent(bs)
-
-		w.Write([]byte("OK"))
-	} else {
-		handleError(err, "Error cant remove node: %v", w)
-	}
-
+	w.Write([]byte("OK"))
 }
-
 
 func postPaymentItem(s *Server, w http.ResponseWriter, req *http.Request) {
 
@@ -233,14 +247,5 @@ func postPaymentItem(s *Server, w http.ResponseWriter, req *http.Request) {
 
 	payment.Time = time.Now()
 
-	w.Write([]byte("OK"))
-}
-
-// DeleteItem removes a single item (identified by parameter) from the database.
-func deleteItem(w http.ResponseWriter, req *http.Request) {
-	if err := clearAll(); err != nil {
-		log.Println( "Failed to save data: %v", err)
-		return
-	}
 	w.Write([]byte("OK"))
 }
