@@ -8,7 +8,7 @@ const ServerMaxEventBufferSize int = 1
 
 type Server struct {
 	clients       map[*Client]bool
-	register      chan *Client
+	Register      chan *Client
 	unregister    chan *Client
 	event         chan []byte
 	PendingEvents ConcurrentSlice //events waiting to be written to DB
@@ -17,7 +17,7 @@ type Server struct {
 func NewServer() *Server {
 	return &Server{
 		clients:    make(map[*Client]bool),
-		register:   make(chan *Client),
+		Register:   make(chan *Client),
 		unregister: make(chan *Client),
 		event:      make(chan []byte),
 	}
@@ -27,10 +27,10 @@ func (s *Server) pushEvent(event []byte) {
 	s.event <- event
 }
 
-func (s *Server) run() {
+func (s *Server) Run() {
 	for {
 		select {
-		case client := <-s.register:
+		case client := <-s.Register:
 			s.clients[client] = true
 		case client := <-s.unregister:
 			if _, ok := s.clients[client]; ok {

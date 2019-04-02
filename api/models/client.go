@@ -38,7 +38,7 @@ func (c *Client) pushEvent(event []byte) {
 	}
 }
 
-func (c *Client) readPing() {
+func (c *Client) ReadPing() {
 	go func() {
 		for {
 			c.Conn.SetReadDeadline(time.Now().Add(time.Duration(PingIntervalSec) * time.Second))
@@ -52,8 +52,8 @@ func (c *Client) readPing() {
 	}()
 }
 
-func (c *Client) sendDB() error {
-	rsNodes, rsTrustlines, _ := getItems()
+func (c *Client) SendDB() error {
+	rsNodes, rsTrustlines, _ := GetItems()
 
 	for _, node := range rsNodes {
 		bsnode, err := json.Marshal(node)

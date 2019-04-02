@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/geo-graph-service/api/models"
-	"github.com/geo-graph-service/api/models/item/db"
+	"github.com/GeoServer/project/api/models"
+	_ "github.com/GeoServer/project/api/models/item/db"
 
 	"github.com/gorilla/websocket"
 )
 
 func main() {
-	db.InitDB()
 	s := models.NewServer()
-	go s.run()
+	go s.Run()
 
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -36,7 +35,7 @@ func main() {
 
 	http.HandleFunc("/api/v1/trustlines", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			models.CreateTrustline(s, w, r)
+			models.PostTrustline(s, w, r)
 		} else if r.Method == "DELETE" {
 			models.DeleteTrustline(s, w, r)
 		} else {
@@ -66,13 +65,12 @@ func main() {
 		if err != nil {
 			return
 		}
-		client := models.Client{Conn: conn,
-			S: s}
+		client := models.Client{Conn: conn, S: s}
 
-		client.readPing()
-		err = client.sendDB()
+		client.ReadPing()
+		err = client.SendDB()
 		if err == nil {
-			s.register <- &client
+			s.Register <- &client
 		}
 	})
 

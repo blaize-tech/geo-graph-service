@@ -11,7 +11,7 @@ type Configuration struct {
 }
 
 func getConfig() Configuration {
-	dir := "/go/src/github.com/GeoServer/project/api"
+	dir := "/go/src/github.com/GeoServer/GeoServer/project/api"
 	file, err := os.Open(dir + "/conf.json")
 	if err != nil {
 		fmt.Println(err)

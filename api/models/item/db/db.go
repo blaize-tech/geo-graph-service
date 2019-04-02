@@ -6,21 +6,21 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-var db *mgo.Database
+var dB *mgo.Database
 
 //Initialize connection
-func InitDB() {
+func init() {
 	session, err := mgo.Dial("172.17.0.1:25017/api_db")
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	db = session.DB("api_db")
+	dB = session.DB("api_db")
 }
 
 // getCollection return collection from database
 // trustline payment
 func GetCollection(tableName string) *mgo.Collection {
-	return db.C(tableName)
+	return dB.C(tableName)
 }
 
 /**

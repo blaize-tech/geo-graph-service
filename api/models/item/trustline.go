@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/geo-graph-service/api/models/item/db"
+	"github.com/GeoServer/project/api/models/item/db"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -14,11 +14,10 @@ var equi uint32 = 0
 
 type Trustline struct {
 	//Id				string		`bson:"id"`
-	Source      string `json:"source" bson:"nodeSource"`
-	Destination string `json:"destination" bson:"nodeDestination"`
-	//	Delete			bool
-	Equivalent uint32    `json:"equivalent" bson:"equivalent" `
-	Time       time.Time `bson:"time"`
+	Source      string    `json:"source" bson:"nodeSource"`
+	Destination string    `json:"destination" bson:"nodeDestination"`
+	Equivalent  uint32    `json:"equivalent" bson:"equivalent" `
+	Time        time.Time `bson:"time"`
 }
 
 // PostItem saves an item (form data) into the database.
@@ -34,52 +33,45 @@ func PostTrustline(trustline *Trustline) error {
 		CreateNode(&node)
 	}
 
-	_, err = findTrustline(trustline.Destination, trustline.Source)
+	_, err = FindTrustline(trustline.Destination, trustline.Source)
 	if err != nil {
-		trustline.Equivalent = equi
-		if err := db.SaveItem(trustline, "trustline"); err != nil {
-			return err
+		return fmt.Errorf("'Trustline is already exists in db'")
+	}
+	trustline.Equivalent = equi
+	if err := db.SaveItem(trustline, "trustline"); err != nil {
+		return err
+	}
+	return nil
+
+}
+func DeleteTrustline(src string, dst string) error {
+	_, err := FindTrustline(src, dst)
+	if err != nil {
+		if err = removeTrustline(src, dst, "trustline"); err != nil {
+			if err = removeTrustline(dst, src, "trustline"); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func DeleteTrustline(src string, dst string) error {
-
-	_, err := findTrustline(src, dst)
-	if err != nil {
-		return err
-	}
-	if err = removeTrustline(src, dst, "trustline"); err != nil {
-		return err
-	}
-	return nil
-	// if err = removeTrustline(req.FormValue("dst"), req.FormValue("src"), "trustline"); err != nil {
-	// 	handleError(err, "Failed to remove trustline: %v", w)
-	// 	return
-	// trustline := Trustline{Source: req.FormValue("src"), Destination: req.FormValue("dst"), Equivalent: equi, Time: time.Now()}
-	// //write bytes to event
-	// bs, _ := json.Marshal(trustline)
-	// s.pushEvent(bs)
-	// w.Write([]byte("OK"))
-}
-
 func RemoveAllTrustlines() error {
-	trustlines, err := getAllTrustlines()
+	trustlines, err := GetAllTrustlines()
 	if err != nil {
 		return fmt.Errorf("Cant load trustlines from db: %v", err)
 	}
 	for i := range trustlines {
 		err := removeTrustline(trustlines[i].Source, trustlines[i].Destination, "trustline")
 		if err != nil {
-			log.Printf("range removing error occured: %v", err)
+			log.Printf("range removing trustlines error occured: %v", err)
 		}
 	}
 	return nil
 }
 
 // getAll returns all items from the table of database.
-func getAllTrustlines() ([]Trustline, error) {
+func GetAllTrustlines() ([]Trustline, error) {
 	res := []Trustline{}
 	if err := db.GetCollection("trustline").Find(nil).All(&res); err != nil {
 		return nil, err
@@ -87,14 +79,17 @@ func getAllTrustlines() ([]Trustline, error) {
 	return res, nil
 }
 
-func findTrustline(hashSource string, hashDestination string) (*Trustline, error) {
+func FindTrustline(hashSource string, hashDestination string) (*Trustline, error) {
 	res := Trustline{}
-	if err := db.GetCollection("trustline").Find(bson.M{"nodeSource": hashSource, "nodeDestination": hashDestination}).One(&res); err != nil {
-		if err = db.GetCollection("trustline").Find(bson.M{"nodeSource": hashDestination, "nodeDestination": hashSource}).One(&res); err != nil {
-			return nil, err
-		}
-		return nil, err
+
+	if err := db.GetCollection("trustline").Find(bson.M{"nodeSource": hashSource, "nodeDestination": hashDestination}).One(&res); err == nil {
+		return nil, fmt.Errorf("Trustline is already exists")
 	}
+
+	if err := db.GetCollection("trustline").Find(bson.M{"nodeSource": hashDestination, "nodeDestination": hashSource}).One(&res); err == nil {
+		return nil, fmt.Errorf("Trustline is already exists")
+	}
+
 	return &res, nil
 }
 

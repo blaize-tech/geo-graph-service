@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/geo-graph-service/api/models/item/db"
+	"github.com/GeoServer/project/api/models/item/db"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -14,12 +14,12 @@ type Node struct {
 }
 
 func CreateNode(node *Node) error {
-	_, err := findNode(node.Hash)
-	if err != nil {
-		return err
+	obj, err := findNode(node.Hash)
+	if obj != nil {
+		return fmt.Errorf("Node is already exists in db: %v", err)
 	} else {
 		if err := db.SaveItem(node, "nodes"); err != nil {
-			return err
+			return fmt.Errorf("Problem with saving item in db: %v", err)
 		}
 		return nil
 	}
@@ -28,7 +28,7 @@ func CreateNode(node *Node) error {
 func DeleteNode(hash string) error {
 	_, err := findNode(hash)
 	if err != nil {
-		log.Println("No node in db ", err)
+		log.Println("No node in db: %v", err)
 		return err
 	} else {
 		if err := removeNode(hash, "nodes"); err != nil {
@@ -48,15 +48,15 @@ func findNode(hashNode string) (*Node, error) {
 	return res, nil
 }
 
-func RemoveAll() error {
+func RemoveAllNodes() error {
 	res, err := getAllNodes()
 	if err != nil {
-		return fmt.Errorf("Cant load trustlines from db: %v", err)
+		return fmt.Errorf("Can't load nodes from db: %v", err)
 	}
 	for i := range res {
-		err := removeNode(res[i].Hash, "node")
+		err := removeNode(res[i].Hash, "nodes")
 		if err != nil {
-			log.Printf("range removing error occured: %v", err)
+			log.Printf("All nodes removing error: %v", err)
 		}
 	}
 	return nil

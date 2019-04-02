@@ -3,7 +3,7 @@ package item
 import (
 	"time"
 
-	"github.com/geo-graph-service/api/models/item/db"
+	"github.com/GeoServer/project/api/models/item/db"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -16,7 +16,7 @@ type Payment struct {
 	Paths [][]string `json:"paths" bson:"pathHashs"`
 }
 
-func getAllPayments() ([]Payment, error) {
+func GetAllPayments() ([]Payment, error) {
 	res := []Payment{}
 	if err := db.GetCollection("payment").Find(nil).All(&res); err != nil {
 		return nil, err
