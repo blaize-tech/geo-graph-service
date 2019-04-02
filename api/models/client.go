@@ -1,26 +1,25 @@
-package main
+package models
 
 import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"gopkg.in/mgo.v2"
 	"log"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"gopkg.in/mgo.v2"
 )
 
 const ClientMaxEventBufferSize int = 1
 const PingIntervalSec int = 10
 
-
 type Client struct {
-	S *Server
-	Conn *websocket.Conn
-	Database *mgo.Database
+	S             *Server
+	Conn          *websocket.Conn
+	Database      *mgo.Database
 	PendingEvents ConcurrentSlice
 }
-
 
 func (c *Client) pushEvent(event []byte) {
 	c.PendingEvents.append(event)
@@ -39,10 +38,10 @@ func (c *Client) pushEvent(event []byte) {
 	}
 }
 
-func (c * Client) readPing() {
+func (c *Client) readPing() {
 	go func() {
 		for {
-			c.Conn.SetReadDeadline(time.Now().Add(time.Duration( PingIntervalSec) * time.Second))
+			c.Conn.SetReadDeadline(time.Now().Add(time.Duration(PingIntervalSec) * time.Second))
 			_, _, err := c.Conn.ReadMessage()
 			if err != nil {
 				c.Conn.Close()
@@ -54,18 +53,30 @@ func (c * Client) readPing() {
 }
 
 func (c *Client) sendDB() error {
-	rsTrustlines, _ := geItems()
+	rsNodes, rsTrustlines, _ := getItems()
 
-	for _, node := range rsTrustlines {
+	for _, node := range rsNodes {
 		bsnode, err := json.Marshal(node)
-		if err !=nil {
-			log.Println("Error:",err)
+		if err != nil {
+			log.Println("Error:", err)
 		}
 		if err := c.write(bsnode); err != nil {
-			log.Println("Error:",err)
+			log.Println("Error:", err)
 			return err
 		}
 	}
+
+	for _, trustline := range rsTrustlines {
+		bsnode, err := json.Marshal(trustline)
+		if err != nil {
+			log.Println("Error:", err)
+		}
+		if err := c.write(bsnode); err != nil {
+			log.Println("Error:", err)
+			return err
+		}
+	}
+
 	return nil
 }
 

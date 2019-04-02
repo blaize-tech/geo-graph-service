@@ -4,11 +4,15 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/geo-graph-service/api/models"
+	"github.com/geo-graph-service/api/models/item/db"
+
 	"github.com/gorilla/websocket"
 )
 
 func main() {
-	s := newServer()
+	db.InitDB()
+	s := models.NewServer()
 	go s.run()
 
 	var upgrader = websocket.Upgrader{
@@ -22,29 +26,19 @@ func main() {
 	http.HandleFunc("/api/v1/nodes", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
-			createNode(s, w, r)
+			models.CreateNode(s, w, r)
 		case "DELETE":
-			deleteNode(s, w, r)
+			models.DeleteNode(s, w, r)
 		default:
 			http.Error(w, "Invalid request method.", 405)
 		}
 	})
 
-	// http.HandleFunc("/api/v1/nodes", func(w http.ResponseWriter, r *http.Request) {
-	// 	if r.Method == "POST" {
-	// 		postNodeItem(s, w, r)
-	// 	} else if r.Method == "DELETE" {
-	// 		deleteNodesItem(s, w, r)
-	// 	} else {
-	// 		http.Error(w, "Invalid request method.", 405)
-	// 	}
-	// })
-
 	http.HandleFunc("/api/v1/trustlines", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			postTrustlineItem(s, w, r)
+			models.CreateTrustline(s, w, r)
 		} else if r.Method == "DELETE" {
-			deleteTrustlineItem(s, w, r)
+			models.DeleteTrustline(s, w, r)
 		} else {
 			http.Error(w, "Invalid request method.", 405)
 		}
@@ -52,7 +46,7 @@ func main() {
 
 	http.HandleFunc("/api/v1/payments", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			postPaymentItem(s, w, r)
+			models.PostPaymentItem(s, w, r)
 		} else {
 			http.Error(w, "Invalid request method.", 405)
 		}
@@ -60,14 +54,7 @@ func main() {
 
 	http.HandleFunc("/api/v1/clear", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-			if r.FormValue("key") == "" {
-				http.Error(w, "Invalid request method.", 405)
-			} else if r.FormValue("key") == getConfig().Key {
-				deleteItem(w, r)
-			} else {
-				http.Error(w, "Invalid key.", 405)
-			}
-
+			models.DeleteAll(w, r)
 		} else {
 			http.Error(w, "Invalid request method.", 405)
 		}
@@ -79,7 +66,7 @@ func main() {
 		if err != nil {
 			return
 		}
-		client := Client{Conn: conn,
+		client := models.Client{Conn: conn,
 			S: s}
 
 		client.readPing()

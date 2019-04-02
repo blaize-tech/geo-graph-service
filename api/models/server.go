@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"fmt"
@@ -6,16 +6,15 @@ import (
 
 const ServerMaxEventBufferSize int = 1
 
-
 type Server struct {
-	clients map[*Client]bool
-	register chan *Client
-	unregister chan *Client
-	event chan []byte
+	clients       map[*Client]bool
+	register      chan *Client
+	unregister    chan *Client
+	event         chan []byte
 	PendingEvents ConcurrentSlice //events waiting to be written to DB
 }
 
-func newServer() *Server {
+func NewServer() *Server {
 	return &Server{
 		clients:    make(map[*Client]bool),
 		register:   make(chan *Client),

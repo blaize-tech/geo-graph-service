@@ -1,11 +1,10 @@
-package main
+package models
 
 import (
 	"sync"
 )
 
 type Item = []byte
-
 
 type ConcurrentSlice struct {
 	sync.Mutex

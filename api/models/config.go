@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"encoding/json"
@@ -7,12 +7,12 @@ import (
 )
 
 type Configuration struct {
-	Key  string
+	Key string
 }
 
 func getConfig() Configuration {
 	dir := "/go/src/github.com/GeoServer/project/api"
-	file, err := os.Open(dir+"/conf.json")
+	file, err := os.Open(dir + "/conf.json")
 	if err != nil {
 		fmt.Println(err)
 	}
