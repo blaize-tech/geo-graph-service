@@ -16,6 +16,7 @@ func handleError(err error, message string, w http.ResponseWriter) {
 	w.Write([]byte(fmt.Sprintf(message, err)))
 }
 
+//CreateNode creates request node to the database
 func CreateNode(s *Server, w http.ResponseWriter, req *http.Request) {
 	var nod = new(item.Node)
 	if req.Body == nil {
@@ -36,6 +37,7 @@ func CreateNode(s *Server, w http.ResponseWriter, req *http.Request) {
 
 }
 
+//DeleteNode deletes request node from database
 func DeleteNode(s *Server, w http.ResponseWriter, req *http.Request) {
 	switch req.FormValue("hash") {
 	case "":
@@ -51,6 +53,7 @@ func DeleteNode(s *Server, w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//PostTrustline creates request trustline and adds it to the database
 func PostTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 	trustline := item.Trustline{}
 	if req.Body == nil {
@@ -76,8 +79,8 @@ func PostTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 	return
 }
 
+//DeleteTrustline removes request trustline from database
 func DeleteTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
-
 	if req.FormValue("src") == "" || req.FormValue("dst") == "" {
 		http.Error(w, "Please send a correct url key body", 400)
 		return
@@ -100,6 +103,7 @@ func DeleteTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 	return
 }
 
+//PostPaymentItem adds payment to service
 func PostPaymentItem(s *Server, w http.ResponseWriter, req *http.Request) {
 	payment := item.Payment{}
 	if req.Body == nil {
@@ -119,6 +123,7 @@ func PostPaymentItem(s *Server, w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+//GetItems return items data from database
 func GetItems() ([]item.Node, []item.Trustline, []item.Payment) {
 	rsTrustlines, err := item.GetAllTrustlines()
 	if err != nil {
@@ -134,7 +139,7 @@ func GetItems() ([]item.Node, []item.Trustline, []item.Payment) {
 	return nil, rsTrustlines, rsPayments
 }
 
-// DeleteItem removes a single item (identified by parameter) from the database.
+// DeleteAll removes a single item (identified by parameter) from the database.
 func DeleteAll(w http.ResponseWriter, req *http.Request) error {
 	switch req.FormValue("key") {
 	case "":
