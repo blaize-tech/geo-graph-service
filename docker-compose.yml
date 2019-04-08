@@ -9,7 +9,7 @@ services:
     expose:
       - '25017'
     volumes:
-      - './api:/go/src/github.com/GeoServer/GeoServer/project/api'
+      - './api:/go/src/github.com/GeoServer/project/api'
     environment:
       - DB_NAME=GeoServer/project
     depends_on:
