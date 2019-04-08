@@ -14,32 +14,29 @@ type Node struct {
 }
 
 func CreateNode(node *Node) error {
-	obj, err := findNode(node.Hash)
+	obj, err := FindNode(node.Hash)
 	if obj != nil {
 		return fmt.Errorf("Node is already exists in db: %v", err)
-	} else {
-		if err := db.SaveItem(node, "nodes"); err != nil {
-			return fmt.Errorf("Problem with saving item in db: %v", err)
-		}
-		return nil
 	}
+	if err := db.SaveItem(node, "nodes"); err != nil {
+		return fmt.Errorf("Problem with saving item in db: %v", err)
+	}
+	return nil
 }
 
 func DeleteNode(hash string) error {
-	_, err := findNode(hash)
+	_, err := FindNode(hash)
 	if err != nil {
 		log.Println("No node in db: %v", err)
 		return err
-	} else {
-		if err := removeNode(hash, "nodes"); err != nil {
-			return err
-		}
-		return nil
 	}
+	if err := removeNode(hash, "nodes"); err != nil {
+		return err
+	}
+	return nil
 }
 
-//test
-func findNode(hashNode string) (*Node, error) {
+func FindNode(hashNode string) (*Node, error) {
 	var res = new(Node)
 	err := db.GetCollection("nodes").Find(bson.M{"hash": hashNode}).One(&res)
 	if err != nil {
@@ -49,7 +46,7 @@ func findNode(hashNode string) (*Node, error) {
 }
 
 func RemoveAllNodes() error {
-	res, err := getAllNodes()
+	res, err := GetAllNodes()
 	if err != nil {
 		return fmt.Errorf("Can't load nodes from db: %v", err)
 	}
@@ -66,7 +63,7 @@ func removeNode(hash string, tableName string) error {
 	return db.GetCollection(tableName).Remove(bson.M{"hash": hash})
 }
 
-func getAllNodes() ([]Node, error) {
+func GetAllNodes() ([]Node, error) {
 	res := []Node{}
 	if err := db.GetCollection("nodes").Find(nil).All(&res); err != nil {
 		return nil, err

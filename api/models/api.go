@@ -6,10 +6,19 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/GeoServer/project/api/models/item"
 )
+
+//ClientMock ock for client vizualization
+type ClientMock struct {
+	Source      string `json:"source"`
+	Destination string `json:"destination"`
+	Delete      bool
+	Time        time.Time
+}
 
 func handleError(err error, message string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
@@ -32,6 +41,9 @@ func CreateNode(s *Server, w http.ResponseWriter, req *http.Request) {
 		handleError(err, "Failed to insert node data in db: %v", w)
 		return
 	}
+	nd := ClientMock{Source: nod.Hash, Destination: nod.Hash, Time: time.Now()}
+	bs, _ := json.Marshal(nd)
+	s.pushEvent(bs)
 	w.Write([]byte("OK"))
 	return
 
@@ -48,12 +60,15 @@ func DeleteNode(s *Server, w http.ResponseWriter, req *http.Request) {
 			handleError(err, "Failed to delete node from db: %v", w)
 			return
 		}
+		nd := ClientMock{Source: req.FormValue("hash"), Destination: req.FormValue("hash"), Time: time.Now(), Delete: true}
+		bs, _ := json.Marshal(nd)
+		s.pushEvent(bs)
 		w.Write([]byte("OK"))
 		return
 	}
 }
 
-//PostTrustline creates request trustline and adds it to the database
+//PostTrustline creates trustline by reuest and adds it to the database
 func PostTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 	trustline := item.Trustline{}
 	if req.Body == nil {
@@ -65,13 +80,33 @@ func PostTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), 400)
 		return
 	}
+
+	_, err = item.FindNode(trustline.Destination)
+	if err != nil {
+		node := item.Node{Hash: trustline.Destination}
+		item.CreateNode(&node)
+		nd := ClientMock{Source: node.Hash, Destination: node.Hash, Time: time.Now()}
+		bs, _ := json.Marshal(nd)
+		s.pushEvent(bs)
+	}
+
+	_, err = item.FindNode(trustline.Source)
+	if err != nil {
+		node := item.Node{Hash: trustline.Source}
+		item.CreateNode(&node)
+		nd := ClientMock{Source: node.Hash, Destination: node.Hash, Time: time.Now()}
+		bs, _ := json.Marshal(nd)
+		s.pushEvent(bs)
+	}
+
 	//set current time
 	trustline.Time = time.Now()
 	err = item.PostTrustline(&trustline)
 	if err != nil {
-		handleError(err, "Cannot create trustline,err: %v ", w)
+		handleError(err, "Cannot create trustline, err: %v ", w)
 		return
 	}
+
 	//write bytes to event
 	bs, _ := json.Marshal(trustline)
 	s.pushEvent(bs)
@@ -89,16 +124,15 @@ func DeleteTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 	if i, _ := item.FindTrustline(req.FormValue("src"), req.FormValue("dst")); i == nil {
 		err := item.DeleteTrustline(req.FormValue("src"), req.FormValue("dst"))
 		if err != nil {
-			handleError(err, "Cannont delete trustline", w)
+			handleError(err, "Cannont delete trustline: %v", w)
 		}
+		nd := ClientMock{Source: req.FormValue("src"), Destination: req.FormValue("dst"), Time: time.Now(), Delete: true}
+
+		bs, _ := json.Marshal(nd)
+		s.pushEvent(bs)
 		w.Write([]byte("OK"))
 		return
 	}
-
-	//write bytes to event
-	// bs, _ := json.Marshal(trustline)
-	// s.pushEvent(bs)
-
 	w.Write([]byte("No trustline to delete"))
 	return
 }
@@ -117,14 +151,26 @@ func PostPaymentItem(s *Server, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	payment.Time = time.Now()
+	for i := range payment.Paths {
+		src := []string{payment.Source}
+		payment.Paths[i] = append(src, payment.Paths[i]...)
+		payment.Paths[i] = append(payment.Paths[i], payment.Destination)
+	}
 	bs, err := json.Marshal(payment)
 	s.pushEvent(bs)
 
 	w.Write([]byte("OK"))
 }
 
-//GetItems return items data from database
+//GetItems return all items data from database
 func GetItems() ([]item.Node, []item.Trustline, []item.Payment) {
+
+	rsNodes, err := item.GetAllNodes()
+	if err != nil {
+		log.Println("Failed to load database items:", err)
+		rsNodes = nil
+	}
+
 	rsTrustlines, err := item.GetAllTrustlines()
 	if err != nil {
 		log.Println("Failed to load database items:", err)
@@ -134,30 +180,53 @@ func GetItems() ([]item.Node, []item.Trustline, []item.Payment) {
 	rsPayments, err := item.GetAllPayments()
 	if err != nil {
 		log.Println("Failed to load database items:", err)
+		rsPayments = nil
 	}
 
-	return nil, rsTrustlines, rsPayments
+	return rsNodes, rsTrustlines, rsPayments
 }
 
 // DeleteAll removes a single item (identified by parameter) from the database.
-func DeleteAll(w http.ResponseWriter, req *http.Request) error {
+func DeleteAll(s *Server, w http.ResponseWriter, req *http.Request) error {
 	switch req.FormValue("key") {
 	case "":
 		err := errors.New("No URL key")
 		return err
 	case getConfig().Key:
-		if err := item.RemoveAllTrustlines(); err != nil {
-			handleError(err, "Deleteting trustlines failed", w)
-			return err
-		}
+		var wg sync.WaitGroup
+		wg.Add(2)
+		nodes, trustlines, _ := GetItems()
 		if err := item.RemoveAllNodes(); err != nil {
-			handleError(err, "Deleting nodes failed", w)
+			handleError(err, "Deleting nodes failed: %v", w)
 			return err
 		}
+		if err := item.RemoveAllTrustlines(); err != nil {
+			handleError(err, "Deleting trustlines failed: %v", w)
+			return err
+		}
+
+		go func() {
+			for _, i := range trustlines {
+				nd := ClientMock{Source: i.Source, Destination: i.Destination, Time: time.Now(), Delete: true}
+				bs, _ := json.Marshal(nd)
+				s.pushEvent(bs)
+			}
+			wg.Done()
+		}()
+
+		go func() {
+			for _, i := range nodes {
+				nd := ClientMock{Source: i.Hash, Destination: i.Hash, Time: time.Now(), Delete: true}
+				bs, _ := json.Marshal(nd)
+				s.pushEvent(bs)
+			}
+			wg.Done()
+		}()
 		w.Write([]byte("OK"))
+
 	default:
 		http.Error(w, "Invalid key.", 405)
-		return fmt.Errorf("Error :key value")
+		return fmt.Errorf("Error: key value")
 	}
 	return nil
 }

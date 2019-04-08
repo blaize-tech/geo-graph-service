@@ -9,31 +9,23 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// mock for Trustline.Equivalent data
-var equi uint32 = 0
+var equi uint32
 
+//Trustline object
 type Trustline struct {
-	//Id				string		`bson:"id"`
 	Source      string    `json:"source" bson:"nodeSource"`
 	Destination string    `json:"destination" bson:"nodeDestination"`
 	Equivalent  uint32    `json:"equivalent" bson:"equivalent" `
 	Time        time.Time `bson:"time"`
 }
 
-// PostItem saves an item (form data) into the database.
+// PostTrustline saves trustline (form data) into the database.
 func PostTrustline(trustline *Trustline) error {
-	_, err := findNode(trustline.Destination)
-	if err != nil {
-		node := Node{Hash: trustline.Destination}
-		CreateNode(&node)
-	}
-	_, err = findNode(trustline.Source)
-	if err != nil {
-		node := Node{Hash: trustline.Source}
-		CreateNode(&node)
-	}
+	// if trustline.Source == trustline.Destination {
+	// 	return fmt.Errorf("destination and source are the same")
+	// }
 
-	_, err = FindTrustline(trustline.Destination, trustline.Source)
+	_, err := FindTrustline(trustline.Destination, trustline.Source)
 	if err != nil {
 		return fmt.Errorf("'Trustline is already exists in db'")
 	}
@@ -44,6 +36,8 @@ func PostTrustline(trustline *Trustline) error {
 	return nil
 
 }
+
+//DeleteTrustline removes trustline from db
 func DeleteTrustline(src string, dst string) error {
 	_, err := FindTrustline(src, dst)
 	if err != nil {
@@ -56,6 +50,7 @@ func DeleteTrustline(src string, dst string) error {
 	return nil
 }
 
+//RemoveAllTrustlines removes all trustline from db
 func RemoveAllTrustlines() error {
 	trustlines, err := GetAllTrustlines()
 	if err != nil {
@@ -70,7 +65,7 @@ func RemoveAllTrustlines() error {
 	return nil
 }
 
-// getAll returns all items from the table of database.
+// GetAllTrustlines returns all trustline items from the table of database.
 func GetAllTrustlines() ([]Trustline, error) {
 	res := []Trustline{}
 	if err := db.GetCollection("trustline").Find(nil).All(&res); err != nil {
@@ -79,6 +74,7 @@ func GetAllTrustlines() ([]Trustline, error) {
 	return res, nil
 }
 
+//FindTrustline serach for trustline, if db exists one returns trustline object
 func FindTrustline(hashSource string, hashDestination string) (*Trustline, error) {
 	res := Trustline{}
 

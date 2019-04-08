@@ -53,7 +53,7 @@ func main() {
 
 	http.HandleFunc("/api/v1/clear", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-			models.DeleteAll(w, r)
+			models.DeleteAll(s, w, r)
 		} else {
 			http.Error(w, "Invalid request method.", 405)
 		}
