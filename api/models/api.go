@@ -46,7 +46,6 @@ func CreateNode(s *Server, w http.ResponseWriter, req *http.Request) {
 	s.pushEvent(bs)
 	w.Write([]byte("OK"))
 	return
-
 }
 
 //DeleteNode deletes request node from database
@@ -68,7 +67,7 @@ func DeleteNode(s *Server, w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-//PostTrustline creates trustline by reuest and adds it to the database
+//PostTrustline creates trustline by request and adds it to the database
 func PostTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 	trustline := item.Trustline{}
 	if req.Body == nil {
@@ -190,7 +189,7 @@ func GetItems() ([]item.Node, []item.Trustline, []item.Payment) {
 func DeleteAll(s *Server, w http.ResponseWriter, req *http.Request) error {
 	switch req.FormValue("key") {
 	case "":
-		err := errors.New("No URL key")
+		err := errors.New("no URL key")
 		return err
 	case getConfig().Key:
 		var wg sync.WaitGroup
@@ -222,6 +221,8 @@ func DeleteAll(s *Server, w http.ResponseWriter, req *http.Request) error {
 			}
 			wg.Done()
 		}()
+
+		wg.Wait()
 		w.Write([]byte("OK"))
 
 	default:

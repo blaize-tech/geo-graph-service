@@ -16,6 +16,7 @@ func getConfig() Configuration {
 	if err != nil {
 		fmt.Println(err)
 	}
+
 	defer file.Close()
 	decoder := json.NewDecoder(file)
 	configuration := Configuration{}

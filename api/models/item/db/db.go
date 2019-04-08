@@ -17,13 +17,12 @@ func init() {
 	dB = session.DB("api_db")
 }
 
-// getCollection return collection from database
-// trustline payment
+// GetCollection return collection from database
 func GetCollection(tableName string) *mgo.Collection {
 	return dB.C(tableName)
 }
 
-// save inserts an item to the database.
+//SaveItem inserts an item to the database.
 func SaveItem(item interface{}, tableName string) error {
 	return GetCollection(tableName).Insert(item)
 }
