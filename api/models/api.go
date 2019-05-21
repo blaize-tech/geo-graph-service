@@ -25,6 +25,23 @@ func handleError(err error, message string, w http.ResponseWriter) {
 	w.Write([]byte(fmt.Sprintf(message, err)))
 }
 
+func Topology(w http.ResponseWriter, r *http.Request) {
+	switch r.FormValue("date") {
+	case "":
+		http.Error(w, "Please send a correct url key body", 400)
+		return
+	default:
+		res, err := item.ActiveTopologyByDate(r.FormValue("date"))
+		if err != nil {
+			w.Write([]byte(fmt.Sprintf("Topology return failed:%v", err)))
+			return
+		}
+		out, _ := json.Marshal(res)
+		w.Write(out)
+		return
+	}
+}
+
 //CreateNode creates request node to the database
 func CreateNode(s *Server, w http.ResponseWriter, req *http.Request) {
 	var nod = new(item.Node)
@@ -37,6 +54,8 @@ func CreateNode(s *Server, w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), 400)
 		return
 	}
+	nod.Date = time.Now()
+	nod.State = "on"
 	if err = item.CreateNode(nod); err != nil {
 		handleError(err, "Failed to insert node data in db: %v", w)
 		return
@@ -80,7 +99,7 @@ func PostTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	_, err = item.FindNode(trustline.Destination)
+	_, err = item.FindNode(trustline.Destination, "on")
 	if err != nil {
 		node := item.Node{Hash: trustline.Destination}
 		item.CreateNode(&node)
@@ -89,7 +108,7 @@ func PostTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 		s.pushEvent(bs)
 	}
 
-	_, err = item.FindNode(trustline.Source)
+	_, err = item.FindNode(trustline.Source, "on")
 	if err != nil {
 		node := item.Node{Hash: trustline.Source}
 		item.CreateNode(&node)
@@ -120,7 +139,7 @@ func DeleteTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if i, _ := item.FindTrustline(req.FormValue("src"), req.FormValue("dst")); i == nil {
+	if _, err := item.FindTrustline(req.FormValue("src"), req.FormValue("dst")); err != nil {
 		err := item.DeleteTrustline(req.FormValue("src"), req.FormValue("dst"))
 		if err != nil {
 			handleError(err, "Cannont delete trustline: %v", w)

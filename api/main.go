@@ -33,6 +33,19 @@ func main() {
 		}
 	})
 
+
+	http.HandleFunc("/api/v1/topology", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET": models.Topology(w,r)
+		//case "POST": models.
+		default:
+			http.Error(w, "Invalid request method.", 405)
+		}
+	})
+
+
+
+
 	http.HandleFunc("/api/v1/trustlines", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			models.PostTrustline(s, w, r)
@@ -59,6 +72,17 @@ func main() {
 		}
 
 	})
+/*
+	http.HandleFunc("/api/v1/nodes/list", func(w http.ResponseWriter, r *http.Request){
+		if r.Method == "POST"{
+			models.GetNodesList(w,r)
+		}else{
+			http.Error(w, "Invalid request method.", 405)
+		}
+		}
+	} )
+*/
+
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
@@ -73,6 +97,8 @@ func main() {
 			s.Register <- &client
 		}
 	})
+
+	
 
 	err := http.ListenAndServe(":3030", nil)
 	if err != nil {
