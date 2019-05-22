@@ -5,13 +5,25 @@ import (
 	"log"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/GeoServer/project/api/models/item/db"
 
 	"gopkg.in/mgo.v2/bson"
 )
+
+type Range struct {
+	Type   string `json:"type"`
+	Offset int    `json:"offset"`
+	Count  int    `json:"count"`
+}
+
+type RangeResponse struct {
+	Start  time.Time `json:"start"`
+	End    time.Time `json:"end"`
+	Count  int       `json:"count"`
+	Growth int       `json:"growth"`
+}
 
 type TopologyList struct {
 	Nodes []Node `json:"nodes"`
@@ -29,6 +41,14 @@ type Node struct {
 	Date        time.Time      `json:"created" bson:"date"`
 	OutGoingTLS []TrustlineAPI `json:"outgoing_tls,omitempty"`
 }
+
+var SwitchTypeStep = map[string]int{
+	"day":   24,
+	"week":  168,
+	"month": 720,
+}
+
+const Trunc = 24 * time.Hour
 
 func CreateNode(node *Node) error {
 	node.State = "on"
@@ -108,48 +128,49 @@ func date(year, month, day int) time.Time {
 	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
 }
 
-func ActiveTopologyByDate(str string) (res TopologyList, err error) {
+func GetNodesByDate(date time.Time) (res TopologyList, err error) {
+	var nodesList []Node
+	if err = db.GetCollection("nodes_history").Find(bson.M{"date": bson.M{"$lte": date}}).All(&nodesList); err != nil {
+		log.Printf("DB error: GetNodesByDate failed cause %v", err)
+		return
+	}
+	var hash string
+	for len(nodesList) != 0 {
+		hash = nodesList[0].Hash
+		node, err := getActiveNode(hash, nodesList)
+		if err == nil {
+			res.Nodes = append(res.Nodes, node)
+		}
+		nodesList = delNodes(node.Hash, nodesList)
+	}
+	return res, nil
+}
+
+func GetTrustlinesByDate(date time.Time) (premadeTrustlines []Trustline, err error) {
+	var trustlinesList []Trustline
+	if err = db.GetCollection("trustline_history").Find(bson.M{"date": bson.M{"$lte": date}}).All(&trustlinesList); err != nil {
+		return
+	}
+	for len(trustlinesList) != 0 {
+		src, dst := trustlinesList[0].Source, trustlinesList[0].Destination
+		trust, err := getActiveTrustline(src, dst, trustlinesList)
+		if err == nil {
+			premadeTrustlines = append(premadeTrustlines, trust)
+		}
+		trustlinesList = delTrustlines(src, dst, trustlinesList)
+	}
+	return premadeTrustlines, nil
+}
+
+func TopologyRepack(str string) (res TopologyList, err error) {
 	strin := strings.Split(str, ".")
 	year, _ := strconv.Atoi(strin[0])
 	month, _ := strconv.Atoi(strin[1])
 	day, _ := strconv.Atoi(strin[2])
 	date := date(year, month, day)
-	var nodesList []Node
-	if err = db.GetCollection("nodes_history").Find(bson.M{"date": bson.M{"$lte": date}}).All(&nodesList); err != nil {
-		return
-	}
-	var hash string
-	var wg sync.WaitGroup
-	wg.Add(2)
 
-	go func() {
-		defer wg.Done()
-		for len(nodesList) != 0 {
-			hash = nodesList[0].Hash
-			node, err := getActiveNode(hash, nodesList)
-			if err == nil {
-				res.Nodes = append(res.Nodes, node)
-			}
-			nodesList = delNodes(node.Hash, nodesList)
-		}
-	}()
-	var premadeTrustlines, trustlinesList []Trustline
-	if err = db.GetCollection("trustline_history").Find(bson.M{"date": bson.M{"$lte": date}}).All(&trustlinesList); err != nil {
-		return
-	}
-	go func() {
-		for len(trustlinesList) != 0 {
-			defer wg.Done()
-			src, dst := trustlinesList[0].Source, trustlinesList[0].Destination
-			trust, err := getActiveTrustline(src, dst, trustlinesList)
-			if err == nil {
-				premadeTrustlines = append(premadeTrustlines, trust)
-			}
-			trustlinesList = delTrustlines(src, dst, trustlinesList)
-		}
-
-	}()
-	wg.Wait()
+	res, _ = GetNodesByDate(date)
+	premadeTrustlines, _ := GetTrustlinesByDate(date)
 	for i, v := range res.Nodes {
 		for _, val := range premadeTrustlines {
 			if v.Hash == val.Source {
@@ -159,6 +180,7 @@ func ActiveTopologyByDate(str string) (res TopologyList, err error) {
 		}
 	}
 	return
+
 }
 
 func delTrustlines(src, dst string, list []Trustline) []Trustline {
@@ -215,4 +237,76 @@ func getActiveNode(hash string, nodes []Node) (Node, error) {
 	}
 
 	return activeNode, fmt.Errorf("Inactive")
+}
+
+func RangeList(rng Range) (res []RangeResponse, err error) {
+	step, ok := SwitchTypeStep[rng.Type]
+	if !ok {
+		return res, fmt.Errorf("Invalid type filter!\n\t Should be 'day/week/month'")
+	}
+	var node, nodeLast Node
+	var mainStart time.Time
+	if err = db.GetCollection("nodes_history").Find(nil).One(&node); err != nil {
+		return
+	}
+	dbSize, err := db.GetCollection("nodes_history").Count()
+	if err != nil {
+		return
+	}
+	if err = db.GetCollection("nodes_history").Find(nil).Skip(dbSize - 1).One(&nodeLast); err != nil {
+		return
+	}
+
+	mainStart = node.Date.Add(time.Hour * time.Duration(step*rng.Offset)).Truncate(Trunc)
+
+	if mainStart.After(nodeLast.Date) {
+		return res, fmt.Errorf("Date is out of actual")
+	}
+
+	var c TopologyList
+	for i := 0; i < rng.Count; i++ {
+		if i == 0 {
+			if mainStart.Add(time.Hour * time.Duration(step)).After(nodeLast.Date) {
+				cLast, _ := GetNodesByDate(nodeLast.Date)
+				cMainStart, _ := GetNodesByDate(mainStart)
+				objResp := RangeResponse{
+					Start:  mainStart,
+					End:    node.Date,
+					Count:  len(cLast.Nodes),
+					Growth: len(cLast.Nodes) - len(cMainStart.Nodes),
+				}
+				res = append(res, objResp)
+				fmt.Errorf("Date is out of actual")
+				break
+			}
+			objResp := rangePack(mainStart, 0, time.Duration(step))
+			res = append(res, objResp)
+			continue
+		}
+		if res[i-1].End.Add(time.Hour * time.Duration(step)).After(nodeLast.Date) {
+			fmt.Errorf("Date is out of actual")
+			c, _ = GetNodesByDate(nodeLast.Date)
+			objResp := RangeResponse{
+				Start:  res[i-1].End,
+				End:    nodeLast.Date,
+				Count:  len(c.Nodes),
+				Growth: len(c.Nodes) - res[i-1].Count,
+			}
+			res = append(res, objResp)
+			break
+		}
+		objResp := rangePack(res[i-1].End, res[i-1].Count, time.Duration(step))
+		res = append(res, objResp)
+	}
+	return
+
+}
+
+func rangePack(start time.Time, countPrev int, step time.Duration) (res RangeResponse) {
+	res.Start = start
+	res.End = start.Add(time.Hour * step)
+	c, _ := GetNodesByDate(res.End)
+	res.Count = len(c.Nodes)
+	res.Growth = res.Count - countPrev
+	return
 }

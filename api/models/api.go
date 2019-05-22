@@ -12,7 +12,7 @@ import (
 	"github.com/GeoServer/project/api/models/item"
 )
 
-//ClientMock ock for client vizualization
+//ClientMock for client vizualization
 type ClientMock struct {
 	Source      string `json:"source"`
 	Destination string `json:"destination"`
@@ -31,7 +31,7 @@ func Topology(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Please send a correct url key body", 400)
 		return
 	default:
-		res, err := item.ActiveTopologyByDate(r.FormValue("date"))
+		res, err := item.TopologyRepack(r.FormValue("date"))
 		if err != nil {
 			w.Write([]byte(fmt.Sprintf("Topology return failed:%v", err)))
 			return
@@ -40,6 +40,28 @@ func Topology(w http.ResponseWriter, r *http.Request) {
 		w.Write(out)
 		return
 	}
+}
+
+func TopologyRange(w http.ResponseWriter, r *http.Request) {
+	var rng = item.Range{}
+	if r.Body == nil {
+		http.Error(w, "Please send a request body", 400)
+		return
+	}
+	err := json.NewDecoder(r.Body).Decode(&rng)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	res, err := item.RangeList(rng)
+	if err != nil {
+		handleError(err, "Topology range err: %v", w)
+		return
+	}
+	resJSON, _ := json.Marshal(res)
+	w.Write(resJSON)
+	return
 }
 
 //CreateNode creates request node to the database
