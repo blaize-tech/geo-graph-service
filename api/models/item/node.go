@@ -25,6 +25,11 @@ type RangeResponse struct {
 	Growth int       `json:"growth"`
 }
 
+type RangeResponseFull struct {
+	Records int             `json:"records"`
+	Stamps  []RangeResponse `json:"stamps"`
+}
+
 type TopologyList struct {
 	Nodes []Node `json:"nodes"`
 }
@@ -239,67 +244,75 @@ func getActiveNode(hash string, nodes []Node) (Node, error) {
 	return activeNode, fmt.Errorf("Inactive")
 }
 
-func RangeList(rng Range) (res []RangeResponse, err error) {
+func RangeList(rng Range) (resFull RangeResponseFull, err error) {
 	step, ok := SwitchTypeStep[rng.Type]
 	if !ok {
-		return res, fmt.Errorf("Invalid type filter!\n\t Should be 'day/week/month'")
+		return resFull, fmt.Errorf("Invalid type filter!\n\t Should be 'day/week/month'")
 	}
-	var node, nodeLast Node
-	var mainStart time.Time
-	if err = db.GetCollection("nodes_history").Find(nil).One(&node); err != nil {
+
+	var nodeActual, nodeLast Node
+	if err = db.GetCollection("nodes_history").Find(nil).One(&nodeLast); err != nil {
 		return
 	}
+
 	dbSize, err := db.GetCollection("nodes_history").Count()
 	if err != nil {
 		return
 	}
-	if err = db.GetCollection("nodes_history").Find(nil).Skip(dbSize - 1).One(&nodeLast); err != nil {
+	if err = db.GetCollection("nodes_history").Find(nil).Skip(dbSize - 1).One(&nodeActual); err != nil {
+		return
+	}
+	log.Printf("QUQUQU_4")
+	if rng.Offset == 0 && rng.Count == 0 {
+		ls := nodeLast.Date.Truncate(time.Hour * 24)
+		resFull = returnAllRange(nodeActual.Date, ls, time.Duration(step))
 		return
 	}
 
-	mainStart = node.Date.Add(time.Hour * time.Duration(step*rng.Offset)).Truncate(Trunc)
-
-	if mainStart.After(nodeLast.Date) {
-		return res, fmt.Errorf("Date is out of actual")
+	if rng.Count == 0 {
+		actual := nodeActual.Date.Add(-time.Hour * time.Duration(step*rng.Offset))
+		ls := nodeLast.Date.Truncate(time.Hour * 24)
+		resFull = returnAllRange(actual, ls, time.Duration(step))
+		return
 	}
 
-	var c TopologyList
+	actual := nodeActual.Date.Add(-time.Hour * time.Duration(rng.Offset*step))
+	last := actual.Add(-time.Hour * time.Duration(step*rng.Count))
+
+	if nodeLast.Date.After(actual) {
+		return resFull, fmt.Errorf("Date is out of actual")
+	}
+
+	if nodeLast.Date.After(last) && !nodeLast.Date.After(actual) {
+		last = nodeLast.Date
+	}
+
+	var k int
 	for i := 0; i < rng.Count; i++ {
-		if i == 0 {
-			if mainStart.Add(time.Hour * time.Duration(step)).After(nodeLast.Date) {
-				cLast, _ := GetNodesByDate(nodeLast.Date)
-				cMainStart, _ := GetNodesByDate(mainStart)
-				objResp := RangeResponse{
-					Start:  mainStart,
-					End:    node.Date,
-					Count:  len(cLast.Nodes),
-					Growth: len(cLast.Nodes) - len(cMainStart.Nodes),
-				}
-				res = append(res, objResp)
-				fmt.Errorf("Date is out of actual")
-				break
+		if last.After(actual) && !last.Add(-time.Hour*time.Duration(step)).After(actual) {
+			if i == 0 {
+				var mck RangeResponse
+				resFull.Stamps = append(resFull.Stamps, mck)
+				k = 0
+			} else {
+				k = i - 1
 			}
-			objResp := rangePack(mainStart, 0, time.Duration(step))
-			res = append(res, objResp)
-			continue
-		}
-		if res[i-1].End.Add(time.Hour * time.Duration(step)).After(nodeLast.Date) {
-			fmt.Errorf("Date is out of actual")
-			c, _ = GetNodesByDate(nodeLast.Date)
-			objResp := RangeResponse{
-				Start:  res[i-1].End,
-				End:    nodeLast.Date,
-				Count:  len(c.Nodes),
-				Growth: len(c.Nodes) - res[i-1].Count,
-			}
-			res = append(res, objResp)
+			a, _ := GetNodesByDate(actual)
+			prevCount, _ := GetNodesByDate(last.Add(-time.Hour * time.Duration(step)))
+			resFull.Stamps[k].End = actual
+			resFull.Stamps[k].Count = len(a.Nodes)
+			resFull.Stamps[k].Growth = len(a.Nodes) - len(prevCount.Nodes)
 			break
 		}
-		objResp := rangePack(res[i-1].End, res[i-1].Count, time.Duration(step))
-		res = append(res, objResp)
-	}
-	return
 
+		b, _ := GetNodesByDate(last)
+		add := rangePack(last, len(b.Nodes), time.Duration(step))
+		resFull.Stamps = append(resFull.Stamps, add)
+		last = last.Add(time.Hour * time.Duration(step))
+	}
+	resFull.Records = len(resFull.Stamps)
+	resFull.Stamps = revers(resFull.Stamps)
+	return
 }
 
 func rangePack(start time.Time, countPrev int, step time.Duration) (res RangeResponse) {
@@ -309,4 +322,42 @@ func rangePack(start time.Time, countPrev int, step time.Duration) (res RangeRes
 	res.Count = len(c.Nodes)
 	res.Growth = res.Count - countPrev
 	return
+}
+
+func returnAllRange(actual, last time.Time, step time.Duration) (res RangeResponseFull) {
+	for i := 0; ; i++ {
+		var k int
+		if last.After(actual) && !last.Add(-time.Hour*step).After(actual) {
+			a, _ := GetNodesByDate(actual)
+			if i == 0 {
+				var mck RangeResponse
+				res.Stamps = append(res.Stamps, mck)
+				k = 0
+			} else {
+				k = i - 1
+			}
+			prevCount, _ := GetNodesByDate(last.Add(-time.Hour * step))
+			res.Stamps[k].End = actual
+			res.Stamps[k].Count = len(a.Nodes)
+			res.Stamps[k].Growth = len(a.Nodes) - len(prevCount.Nodes)
+			break
+		}
+		b, _ := GetNodesByDate(last)
+		add := rangePack(last, len(b.Nodes), step)
+		res.Stamps = append(res.Stamps, add)
+		last = last.Add(time.Hour * time.Duration(step))
+		log.Println(add)
+	}
+
+	res.Records = len(res.Stamps)
+	res.Stamps = revers(res.Stamps)
+	return
+}
+
+func revers(a []RangeResponse) []RangeResponse {
+	for i := len(a)/2 - 1; i >= 0; i-- {
+		opp := len(a) - 1 - i
+		a[i], a[opp] = a[opp], a[i]
+	}
+	return a
 }
