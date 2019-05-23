@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -43,16 +44,24 @@ func Topology(w http.ResponseWriter, r *http.Request) {
 }
 
 func TopologyRange(w http.ResponseWriter, r *http.Request) {
-	var rng = item.Range{}
-	if r.Body == nil {
-		http.Error(w, "Please send a request body", 400)
+	var err error
+	if r.FormValue("type") == "" || r.FormValue("offset") == "" || r.FormValue("count") == "" {
+		http.Error(w, "Please send a correct url key body", 400)
 		return
 	}
-	err := json.NewDecoder(r.Body).Decode(&rng)
+	var rng item.Range
+	rng.Type = r.FormValue("type")
+	rng.Offset, err = strconv.Atoi(r.FormValue("offset"))
 	if err != nil {
-		http.Error(w, err.Error(), 400)
+		handleError(err, "Unable to parse offset: %v", w)
 		return
 	}
+	rng.Count, err = strconv.Atoi(r.FormValue("count"))
+	if err != nil {
+		handleError(err, "Unable to parse count: %v", w)
+		return
+	}
+	rng.Type = r.FormValue("type")
 
 	res, err := item.RangeList(rng)
 	if err != nil {
