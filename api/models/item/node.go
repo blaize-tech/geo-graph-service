@@ -262,7 +262,7 @@ func RangeList(rng Range) (resFull RangeResponseFull, err error) {
 	if err = db.GetCollection("nodes_history").Find(nil).Skip(dbSize - 1).One(&nodeActual); err != nil {
 		return
 	}
-	log.Printf("QUQUQU_4")
+
 	if rng.Offset == 0 && rng.Count == 0 {
 		ls := nodeLast.Date.Truncate(time.Hour * 24)
 		resFull = returnAllRange(nodeActual.Date, ls, time.Duration(step))
@@ -272,6 +272,9 @@ func RangeList(rng Range) (resFull RangeResponseFull, err error) {
 	if rng.Count == 0 {
 		actual := nodeActual.Date.Add(-time.Hour * time.Duration(step*rng.Offset))
 		ls := nodeLast.Date.Truncate(time.Hour * 24)
+		if ls.After(actual) {
+			return resFull, fmt.Errorf("Date is out of actual")
+		}
 		resFull = returnAllRange(actual, ls, time.Duration(step))
 		return
 	}
@@ -346,7 +349,6 @@ func returnAllRange(actual, last time.Time, step time.Duration) (res RangeRespon
 		add := rangePack(last, len(b.Nodes), step)
 		res.Stamps = append(res.Stamps, add)
 		last = last.Add(time.Hour * time.Duration(step))
-		log.Println(add)
 	}
 
 	res.Records = len(res.Stamps)
