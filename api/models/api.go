@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/GeoServer/project/api/models/item"
 )
 
-//ClientMock ock for client vizualization
+//ClientMock for client vizualization
 type ClientMock struct {
 	Source      string `json:"source"`
 	Destination string `json:"destination"`
@@ -23,6 +24,53 @@ type ClientMock struct {
 func handleError(err error, message string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Write([]byte(fmt.Sprintf(message, err)))
+}
+
+func Topology(w http.ResponseWriter, r *http.Request) {
+	switch r.FormValue("date") {
+	case "":
+		http.Error(w, "Please send a correct url key body", 400)
+		return
+	default:
+		res, err := item.TopologyRepack(r.FormValue("date"))
+		if err != nil {
+			w.Write([]byte(fmt.Sprintf("Topology return failed:%v", err)))
+			return
+		}
+		out, _ := json.Marshal(res)
+		w.Write(out)
+		return
+	}
+}
+
+func TopologyRange(w http.ResponseWriter, r *http.Request) {
+	var err error
+	if r.FormValue("type") == "" || r.FormValue("offset") == "" || r.FormValue("count") == "" {
+		http.Error(w, "Please send a correct url key body", 400)
+		return
+	}
+	var rng item.Range
+	rng.Type = r.FormValue("type")
+	rng.Offset, err = strconv.Atoi(r.FormValue("offset"))
+	if err != nil {
+		handleError(err, "Unable to parse offset: %v", w)
+		return
+	}
+	rng.Count, err = strconv.Atoi(r.FormValue("count"))
+	if err != nil {
+		handleError(err, "Unable to parse count: %v", w)
+		return
+	}
+	rng.Type = r.FormValue("type")
+
+	res, err := item.RangeList(rng)
+	if err != nil {
+		handleError(err, "Topology range err: %v", w)
+		return
+	}
+	resJSON, _ := json.Marshal(res)
+	w.Write(resJSON)
+	return
 }
 
 //CreateNode creates request node to the database
@@ -37,6 +85,8 @@ func CreateNode(s *Server, w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), 400)
 		return
 	}
+	nod.Date = time.Now()
+	nod.State = "on"
 	if err = item.CreateNode(nod); err != nil {
 		handleError(err, "Failed to insert node data in db: %v", w)
 		return
@@ -80,7 +130,7 @@ func PostTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	_, err = item.FindNode(trustline.Destination)
+	_, err = item.FindNode(trustline.Destination, "on")
 	if err != nil {
 		node := item.Node{Hash: trustline.Destination}
 		item.CreateNode(&node)
@@ -89,7 +139,7 @@ func PostTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 		s.pushEvent(bs)
 	}
 
-	_, err = item.FindNode(trustline.Source)
+	_, err = item.FindNode(trustline.Source, "on")
 	if err != nil {
 		node := item.Node{Hash: trustline.Source}
 		item.CreateNode(&node)
@@ -120,7 +170,7 @@ func DeleteTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if i, _ := item.FindTrustline(req.FormValue("src"), req.FormValue("dst")); i == nil {
+	if _, err := item.FindTrustline(req.FormValue("src"), req.FormValue("dst")); err != nil {
 		err := item.DeleteTrustline(req.FormValue("src"), req.FormValue("dst"))
 		if err != nil {
 			handleError(err, "Cannont delete trustline: %v", w)

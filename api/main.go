@@ -33,6 +33,26 @@ func main() {
 		}
 	})
 
+	http.HandleFunc("/api/v1/topology/range", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			models.TopologyRange(w, r)
+		default:
+			http.Error(w, "Invalid request method.", 405)
+		}
+	})
+
+	http.HandleFunc("/api/v1/topology", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			models.Topology(w, r)
+		// case "POST":
+		// 	models.TopologyRange(w, r)
+		default:
+			http.Error(w, "Invalid request method.", 405)
+		}
+	})
+
 	http.HandleFunc("/api/v1/trustlines", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			models.PostTrustline(s, w, r)
