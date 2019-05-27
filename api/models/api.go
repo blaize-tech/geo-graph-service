@@ -26,6 +26,7 @@ func handleError(err error, message string, w http.ResponseWriter) {
 	w.Write([]byte(fmt.Sprintf(message, err)))
 }
 
+//
 func Topology(w http.ResponseWriter, r *http.Request) {
 	switch r.FormValue("date") {
 	case "":
@@ -43,6 +44,7 @@ func Topology(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//
 func TopologyRange(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if r.FormValue("type") == "" || r.FormValue("offset") == "" || r.FormValue("count") == "" {
@@ -155,7 +157,6 @@ func PostTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 		handleError(err, "Cannot create trustline, err: %v ", w)
 		return
 	}
-
 	//write bytes to event
 	bs, _ := json.Marshal(trustline)
 	s.pushEvent(bs)
