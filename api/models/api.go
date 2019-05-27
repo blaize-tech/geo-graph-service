@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/geo-graph-service/api/models/item"
+	"geo-graph-service/api/models/item"
 )
 
 //ClientMock for client vizualization
