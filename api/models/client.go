@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/GeoServer/project/api/models/item"
+	"github.com/geo-graph-service/api/models/item"
 
 	"github.com/gorilla/websocket"
 	"gopkg.in/mgo.v2"

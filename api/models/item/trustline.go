@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/GeoServer/project/api/models/item/db"
+	"github.com/geo-graph-service/api/models/item/db"
 	"gopkg.in/mgo.v2/bson"
 )
 
