@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
-	"geo-graph-service/api/models"
-	_ "geo-graph-service/api/models/item/db"
+	"github.com/geo-graph-service/api/models"
+	_ "github.com/geo-graph-service/api/models/item/db"
 
 	"github.com/gorilla/websocket"
 )
@@ -13,7 +14,11 @@ import (
 func main() {
 	s := models.NewServer()
 	go s.Run()
-
+	go func() {
+		for true {
+			log.Print("aaa")
+		}
+	}()
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,

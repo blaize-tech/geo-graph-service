@@ -10,7 +10,7 @@ var dB *mgo.Database
 
 //Initialize connection
 func init() {
-	session, err := mgo.Dial("172.17.0.1:25017/api_db")
+	session, err := mgo.Dial("localhost:27017/api_db")
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
