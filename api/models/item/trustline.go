@@ -20,9 +20,9 @@ type Trustline struct {
 	Time        time.Time `bson:"date"`
 }
 
-type TrustlineAPI struct{
-	Contractor string `json:"contractor"`
-	Equivalent uint32 `json:"equivalent_id"`
+type TrustlineAPI struct {
+	Contractor  string    `json:"contractor"`
+	Equivalent  uint32    `json:"equivalent_id"`
 	SetDateTime time.Time `json:"setdatetime"`
 }
 
@@ -45,22 +45,29 @@ func PostTrustline(trustline *Trustline) error {
 }
 
 //DeleteTrustline removes trustline from db
-func DeleteTrustline(src string, dst string) error {
+func DeleteTrustline(src string, dst string) (string, string, error) {
 	toDelete, err := FindTrustline(src, dst)
+	var sr, dr string
 	if err != nil {
-		if err = removeTrustline(src, dst, "trustline"); err != nil {
-			if err = removeTrustline(dst, src, "trustline"); err != nil {
-				return err
+		err = removeTrustline(src, dst, "trustline")
+		sr = src
+		dr = dst
+		if err != nil {
+			err = removeTrustline(dst, src, "trustline")
+			sr = dst
+			dr = src
+			if err != nil {
+				return "", "", err
 			}
 		}
 	}
 	toDelete.State = "off"
 	toDelete.Time = time.Now()
 	if err := db.SaveItem(toDelete, "trustline_history"); err != nil {
-		return err
+		return "", "", err
 	}
 
-	return nil
+	return sr, dr, nil
 }
 
 //RemoveAllTrustlines removes all trustline from db
@@ -133,11 +140,9 @@ func getTrustline(hash string) (*Trustline, error) {
 	return &res, nil
 }
 
-
-
-func trustlineRepacker(old Trustline)(newer TrustlineAPI){
-	newer.Contractor=old.Destination
-	newer.Equivalent=old.Equivalent
-	newer.SetDateTime=old.Time
+func TrustlineRepacker(old Trustline) (newer TrustlineAPI) {
+	newer.Contractor = old.Destination
+	newer.Equivalent = old.Equivalent
+	newer.SetDateTime = old.Time
 	return
 }

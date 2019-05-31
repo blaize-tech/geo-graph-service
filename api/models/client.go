@@ -7,8 +7,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/geo-graph-service/api/models/item"
-
 	"github.com/gorilla/websocket"
 	"gopkg.in/mgo.v2"
 )
@@ -55,11 +53,9 @@ func (c *Client) ReadPing() {
 }
 
 func (c *Client) SendDB() error {
-	rsNodes, rsTrustlines, _ := GetItems()
+	rsNodes, _, _ := GetItems()
 	for _, node := range rsNodes {
-		nodeConv := item.Trustline{Source: node.Hash, Destination: node.Hash, Time: time.Now()}
-
-		bsnode, err := json.Marshal(nodeConv)
+		bsnode, err := json.Marshal(node)
 		if err != nil {
 			log.Println("Error:", err)
 		}
@@ -69,17 +65,17 @@ func (c *Client) SendDB() error {
 		}
 	}
 
-	for _, trustline := range rsTrustlines {
-		bsnode, err := json.Marshal(trustline)
+	// for _, trustline := range rsTrustlines {
+	// 	bsnode, err := json.Marshal(trustline)
 
-		if err != nil {
-			log.Println("Error:", err)
-		}
-		if err := c.write(bsnode); err != nil {
-			log.Println("Error:", err)
-			return err
-		}
-	}
+	// 	if err != nil {
+	// 		log.Println("Error:", err)
+	// 	}
+	// 	if err := c.write(bsnode); err != nil {
+	// 		log.Println("Error:", err)
+	// 		return err
+	// 	}
+	// }
 	return nil
 }
 

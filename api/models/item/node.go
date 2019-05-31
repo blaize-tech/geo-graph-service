@@ -179,7 +179,7 @@ func TopologyRepack(str string) (res TopologyList, err error) {
 	for i, v := range res.Nodes {
 		for _, val := range premadeTrustlines {
 			if v.Hash == val.Source {
-				res.Nodes[i].OutGoingTLS = append(v.OutGoingTLS, trustlineRepacker(val))
+				res.Nodes[i].OutGoingTLS = append(v.OutGoingTLS, TrustlineRepacker(val))
 
 			}
 		}

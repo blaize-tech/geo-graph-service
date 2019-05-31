@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"log"
 )
 
 const ServerMaxEventBufferSize int = 1
@@ -24,6 +25,7 @@ func NewServer() *Server {
 }
 
 func (s *Server) pushEvent(event []byte) {
+	log.Println(event)
 	s.event <- event
 }
 
