@@ -3,7 +3,8 @@ package item
 import (
 	"time"
 
-	"github.com/geo-graph-service/api/models/item/db"
+	"geo-graph-service/api/models/item/db"
+
 	"gopkg.in/mgo.v2/bson"
 )
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/geo-graph-service/api/models"
-	_ "github.com/geo-graph-service/api/models/item/db"
+	"geo-graph-service/api/models"
+	_ "geo-graph-service/api/models/item/db"
 
 	"github.com/gorilla/websocket"
 )
