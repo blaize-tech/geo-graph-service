@@ -1,7 +1,7 @@
 FROM golang:latest
 
 # Copy the local package files to the container’s workspace.
-ADD . /go/src/github.com/geo-graph-service/api
+ADD . /go/src/geo-graph-service/api
 
 # Install our dependencies
 RUN go get github.com/gorilla/websocket
@@ -9,7 +9,7 @@ RUN go get gopkg.in/mgo.v2
 RUN go get gopkg.in/mgo.v2/bson
 
 # Install api binary globally within container
-RUN go install github.com/geo-graph-service/api
+RUN go install geo-graph-service/api
 
 # Set binary as entrypoint
 ENTRYPOINT /go/bin/api --port 3030

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -45,6 +44,7 @@ func Topology(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//
 func TopologyRange(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if r.FormValue("type") == "" || r.FormValue("offset") == "" || r.FormValue("count") == "" {
@@ -172,11 +172,11 @@ func DeleteTrustline(s *Server, w http.ResponseWriter, req *http.Request) {
 	}
 
 	if _, err := item.FindTrustline(req.FormValue("src"), req.FormValue("dst")); err != nil {
-		src, dst, err := item.DeleteTrustline(req.FormValue("src"), req.FormValue("dst"))
+		_, _, err := item.DeleteTrustline(req.FormValue("src"), req.FormValue("dst"))
 		if err != nil {
 			handleError(err, "Cannont delete trustline: %v", w)
 		}
-		nd := ClientMock{Source: src, Destination: dst, Time: time.Now(), Delete: true}
+		nd := ClientMock{Source: req.FormValue("src"), Destination: req.FormValue("dst"), Time: time.Now(), Delete: true}
 
 		bs, _ := json.Marshal(nd)
 		s.pushEvent(bs)
@@ -214,26 +214,18 @@ func PostPaymentItem(s *Server, w http.ResponseWriter, req *http.Request) {
 
 //GetItems return all items data from database
 func GetItems() ([]item.Node, []item.Trustline, []item.Payment) {
+
 	rsNodes, err := item.GetAllNodes()
 	if err != nil {
 		log.Println("Failed to load database items:", err)
 		rsNodes = nil
 	}
+
 	rsTrustlines, err := item.GetAllTrustlines()
 	if err != nil {
 		log.Println("Failed to load database items:", err)
 		rsTrustlines = nil
 	}
-
-	for i, v := range rsNodes {
-		for _, val := range rsTrustlines {
-			if v.Hash == val.Source {
-				rsNodes[i].OutGoingTLS = append(v.OutGoingTLS, item.TrustlineRepacker(val))
-			}
-		}
-	}
-
-	sort.Slice(rsNodes, func(i, j int) bool { return len(rsNodes[i].OutGoingTLS) < len(rsNodes[j].OutGoingTLS) })
 
 	rsPayments, err := item.GetAllPayments()
 	if err != nil {
