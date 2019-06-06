@@ -43,7 +43,7 @@ type ListNodes struct {
 type Node struct {
 	Hash        string         `json:"hash" bson:"hash"`
 	State       string         `json:"-" bson:"state"`
-	Date        time.Time      `json:"created" bson:"created"`
+	Date        time.Time      `json:"created" bson:"date"`
 	OutGoingTLS []TrustlineAPI `json:"outgoing_tls,omitempty"`
 }
 

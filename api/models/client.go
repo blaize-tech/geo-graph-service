@@ -53,6 +53,13 @@ func (c *Client) ReadPing() {
 }
 
 func (c *Client) SendDB() error {
+	var test = []byte(`{"hash":"GeoTest","created":"0001-01-01T00:00:00Z"}`)
+
+	if err := c.write(test); err != nil {
+		log.Println("Error:", err)
+		return err
+	}
+
 	rsNodes, _, _ := GetItems()
 	for _, node := range rsNodes {
 		bsnode, err := json.Marshal(node)
