@@ -47,7 +47,7 @@ func Topology(w http.ResponseWriter, r *http.Request) {
 //
 func TopologyRange(w http.ResponseWriter, r *http.Request) {
 	var err error
-	if r.FormValue("type") == "" || r.FormValue("offset") == "" || r.FormValue("count") == "" {
+	if r.FormValue("type") == "" {
 		http.Error(w, "Please send a correct url key body", 400)
 		return
 	}
@@ -55,13 +55,13 @@ func TopologyRange(w http.ResponseWriter, r *http.Request) {
 	rng.Type = r.FormValue("type")
 	rng.Offset, err = strconv.Atoi(r.FormValue("offset"))
 	if err != nil {
-		handleError(err, "Unable to parse offset: %v", w)
-		return
+		log.Printf("Unable to parse offset: %v", err)
+		rng.Offset = 0
 	}
 	rng.Count, err = strconv.Atoi(r.FormValue("count"))
 	if err != nil {
-		handleError(err, "Unable to parse count: %v", w)
-		return
+		log.Printf("Unable to parse count: %v", err)
+		rng.Count = 0
 	}
 	rng.Type = r.FormValue("type")
 
