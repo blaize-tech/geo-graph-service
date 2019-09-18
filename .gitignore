@@ -1,0 +1,4 @@
+.idea/
+api/conf.json
+bin
+Gopkg.lock
